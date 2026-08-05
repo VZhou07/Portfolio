@@ -246,6 +246,18 @@
   transform: none;
 }
 
+/* Instrument bar. Fill is a CSS var set from real mission counts, and it grows
+   when the surrounding .gcs-reveal becomes visible — no JS per frame. */
+.gcs-meter {
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.gcs-reveal[data-visible="true"] .gcs-meter {
+  transform: scaleX(var(--level, 0));
+}
+
 /* glitch burst fired once when the sim feed hands over to real footage */
 @keyframes gcs-handover {
   0% {
