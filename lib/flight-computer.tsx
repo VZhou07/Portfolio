@@ -327,6 +327,9 @@ export function FlightComputer({ children }: { children: ReactNode }) {
       });
       /* Keep the URL shareable without pushing a history entry per click. */
       window.history.replaceState(null, "", `#${id}`);
+      /* replaceState does not fire hashchange, so announce it ourselves —
+         the mission list uses this to open a deep-linked card. */
+      window.dispatchEvent(new CustomEvent<string>("gcs:goto", { detail: id }));
     },
     [],
   );

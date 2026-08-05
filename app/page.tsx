@@ -1,6 +1,7 @@
 import { SiteShell } from "@/components/gcs/site-shell";
 import { Section } from "@/components/gcs/section";
 import { Dossier } from "@/components/sections/dossier";
+import { Missions } from "@/components/sections/missions";
 import { Preflight } from "@/components/sections/preflight";
 import { SECTIONS } from "@/lib/content";
 
@@ -12,8 +13,9 @@ export default function Page() {
       <main className="gcs-grid pt-11 pb-20 lg:pb-0 lg:pl-18">
         <Preflight />
         <Dossier />
+        <Missions />
 
-        {SECTIONS.slice(2).map((def) => (
+        {SECTIONS.slice(3).map((def) => (
           <Section
             key={def.id}
             def={def}
