@@ -1,5 +1,6 @@
 import { SiteShell } from "@/components/gcs/site-shell";
 import { Section } from "@/components/gcs/section";
+import { Approach } from "@/components/sections/approach";
 import { Dossier } from "@/components/sections/dossier";
 import { Missions } from "@/components/sections/missions";
 import { Preflight } from "@/components/sections/preflight";
@@ -14,8 +15,9 @@ export default function Page() {
         <Preflight />
         <Dossier />
         <Missions />
+        <Approach />
 
-        {SECTIONS.slice(3).map((def) => (
+        {SECTIONS.slice(4).map((def) => (
           <Section
             key={def.id}
             def={def}
