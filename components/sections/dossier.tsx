@@ -1,7 +1,7 @@
 import { Frame, LinkChip, MicroLabel, SignalBars } from "@/components/gcs/primitives";
 import { Reveal } from "@/components/gcs/reveal";
 import { Section } from "@/components/gcs/section";
-import { MISSIONS, PROFILE, SECTIONS } from "@/lib/content";
+import { COMMS, MISSIONS, PROFILE, SECTIONS } from "@/lib/content";
 import { DOMAIN_INDEX, FLEET, STACK_INDEX } from "@/lib/derive";
 
 const DEF = SECTIONS[1];
@@ -53,7 +53,9 @@ export function Dossier() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <LinkChip label="RESUME" href={PROFILE.resumeUrl} tone="data" />
-              <LinkChip label="GITHUB" href="https://github.com/VZhou07" />
+              {COMMS.filter((c) => c.label !== "EMAIL").map((c) => (
+                <LinkChip key={c.code} label={c.label} href={c.href} />
+              ))}
             </div>
           </Frame>
         </Reveal>
@@ -65,7 +67,7 @@ export function Dossier() {
               <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
                 {[
                   { k: "SORTIES LOGGED", v: FLEET.missions, tone: "text-data" },
-                  { k: "FLIGHT-TESTED", v: FLEET.flightTested, tone: "text-nominal" },
+                  { k: "VERIFIED", v: FLEET.verified, tone: "text-nominal" },
                   { k: "IN PROGRESS", v: FLEET.active, tone: "text-caution" },
                   { k: "STACK DEPTH", v: FLEET.stackDepth, tone: "text-signal" },
                 ].map((s) => (

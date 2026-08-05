@@ -50,9 +50,18 @@ function handover(alt: number): number {
   return t * t * (3 - 2 * t);
 }
 
-function sizeCanvas(
-  canvas: HTMLCanvasElement | null,
-): { ctx: CanvasRenderingContext2D; w: number; h: number } | null {
+interface Surface {
+  ctx: CanvasRenderingContext2D;
+  w: number;
+  h: number;
+}
+
+/**
+ * Sizes a canvas to its CSS box and caches the result. Called on mount, resize
+ * and when the bay scrolls into view — never inside the frame loop, so drawing
+ * costs no layout.
+ */
+function measureCanvas(canvas: HTMLCanvasElement | null): Surface | null {
   if (!canvas) return null;
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -106,8 +115,13 @@ export function Approach() {
   const history = useRef<number[]>([]);
   const nextSample = useRef(0);
   const auto = useRef<"OFF" | "LAND" | "ABORT">("OFF");
-  const played = useRef(false);
   const glitched = useRef(false);
+  /* cached drawing surfaces, refreshed on resize / visibility, not per frame */
+  const surfaces = useRef<{
+    big: Surface | null;
+    tiles: (Surface | null)[];
+    trace: Surface | null;
+  }>({ big: null, tiles: [], trace: null });
 
   const [manual, setManual] = useState(false);
   const [phase, setPhase] = useState<Phase>("TRANSIT");
@@ -155,7 +169,6 @@ export function Approach() {
     const v = video.current;
     if (v && downlink === "READY" && !reducedMotion) {
       if (fade > 0.1 && v.paused) {
-        played.current = true;
         void v.play().catch(() => undefined);
       } else if (fade === 0 && !v.paused) {
         v.pause();
@@ -170,26 +183,26 @@ export function Approach() {
       lever.current.value = (a * 10).toFixed(0);
     }
 
+    if (!onScreen) return;
+
     /* 5. sample the trace at 20 Hz */
     if (t.elapsed > nextSample.current) {
       nextSample.current = t.elapsed + 0.05;
       history.current.push(a);
       if (history.current.length > 170) history.current.shift();
-      if (onScreen) {
-        const c = sizeCanvas(trace.current);
-        if (c) drawTrace(c.ctx, c.w, c.h, history.current, CEILING);
-      }
+      const tr = surfaces.current.trace;
+      if (tr) drawTrace(tr.ctx, tr.w, tr.h, history.current, CEILING);
     }
 
     /* 6. redraw the viewports only when the altitude actually moved */
-    if (!onScreen || Math.abs(a - lastDrawn.current) < 0.008) return;
+    if (Math.abs(a - lastDrawn.current) < 0.008) return;
     lastDrawn.current = a;
 
-    const big = sizeCanvas(main.current);
+    const big = surfaces.current.big;
     if (big) drawSim(big.ctx, { mode: "rgb", alt: a, w: big.w, h: big.h });
 
     for (let i = 0; i < TILES.length; i += 1) {
-      const c = sizeCanvas(tiles.current[i]);
+      const c = surfaces.current.tiles[i];
       if (c) drawSim(c.ctx, { mode: TILES[i].mode, alt: a, w: c.w, h: c.h });
     }
   });
@@ -197,7 +210,7 @@ export function Approach() {
   /* ── text readouts at 10 Hz ────────────────────────────────────────────── */
   useTelemetryThrottled((t) => {
     const a = alt.current;
-    const focal = (main.current?.clientWidth ?? 640) * 0.85;
+    const focal = (surfaces.current.big?.w ?? 640) * 0.85;
     const px = tagPixels(a, focal);
     const conf = tagConfidence(a, px);
     const off = approachOffset(a);
@@ -234,19 +247,31 @@ export function Approach() {
     }
   }, 10);
 
-  /* ── redraw on resize, and whenever the bay comes back on screen ───────── */
+  /* ── size the canvases once per layout change, then forget about it ────── */
   useEffect(() => {
-    /* force the next frame to redraw: the guard below compares against this */
-    lastDrawn.current = -1;
-  }, [onScreen]);
-
-  useEffect(() => {
-    const invalidate = () => {
+    const remeasure = () => {
+      surfaces.current = {
+        big: measureCanvas(main.current),
+        tiles: TILES.map((_, i) => measureCanvas(tiles.current[i])),
+        trace: measureCanvas(trace.current),
+      };
+      /* force the next frame to redraw into the fresh surfaces */
       lastDrawn.current = -1;
     };
-    window.addEventListener("resize", invalidate);
-    return () => window.removeEventListener("resize", invalidate);
-  }, []);
+
+    remeasure();
+
+    const host = bay.current;
+    const ro = host ? new ResizeObserver(remeasure) : null;
+    if (host && ro) ro.observe(host);
+    window.addEventListener("resize", remeasure);
+    if ("fonts" in document) void document.fonts.ready.then(remeasure);
+
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", remeasure);
+    };
+  }, [onScreen]);
 
   /* ── probe the clip once ───────────────────────────────────────────────── */
   useEffect(() => {
@@ -517,7 +542,7 @@ export function Approach() {
               {/* real onboard footage, faded in by altitude */}
               <div
                 ref={live}
-                className="absolute inset-0 opacity-0"
+                className="pointer-events-none absolute inset-0 opacity-0"
                 style={{ willChange: "opacity" }}
               >
                 <video
@@ -537,11 +562,11 @@ export function Approach() {
                     <p className="text-fault text-label tracking-label">
                       DOWNLINK UNAVAILABLE
                     </p>
-                    <p className="text-dim text-micro max-w-sm leading-relaxed">
-                      NO CLIP AT{" "}
-                      <code className="text-data">public{FOOTAGE.src}</code>. DROP
-                      THE LANDING FOOTAGE THERE AND THIS PANEL BECOMES THE REAL
-                      FEED — THE SIM HANDOVER ALREADY WORKS.
+                    <p className="text-dim text-data max-w-sm leading-relaxed">
+                      No clip at{" "}
+                      <code className="text-data">public{FOOTAGE.src}</code>. Drop
+                      the landing footage there and this panel becomes the real
+                      feed — the sim handover already works.
                     </p>
                   </div>
                 )}
@@ -628,9 +653,23 @@ export function Approach() {
               )}
             </div>
 
-            <p className="text-micro text-dim mt-3 max-w-2xl leading-relaxed">
-              RAW ONBOARD CAPTURE · UNSTABILISED · {FOOTAGE.caption}
+            <p className="text-data text-dim mt-3 max-w-2xl leading-relaxed">
+              <span className="text-micro text-mid block">
+                RAW ONBOARD CAPTURE · UNSTABILISED
+              </span>
+              {FOOTAGE.caption}
             </p>
+
+            {downlink === "MISSING" && (
+              <p className="border-caution/40 text-caution text-data mt-3 max-w-2xl border border-dashed p-3 leading-relaxed">
+                No clip found at{" "}
+                <code className="text-data">public{FOOTAGE.src}</code>. The
+                sim-to-real handover above still runs — it just fades to a missing
+                media notice instead of video. Drop the file in and it becomes the
+                real feed; see{" "}
+                <code className="text-data">public/media/README.md</code>.
+              </p>
+            )}
           </Frame>
 
           {/* sim bay tiles — same scene, different pass */}
@@ -654,12 +693,13 @@ export function Approach() {
             ))}
           </div>
 
-          <p className="text-micro text-dim leading-relaxed">
-            EVERY PANEL ABOVE IS THE SAME SCENE THROUGH A DIFFERENT PASS, PROJECTED
-            WITH <span className="text-data">pixels = metres · f / altitude</span>{" "}
-            AND <span className="text-data">depth = h · √(1 + (r/f)²)</span>. THE
-            LATERAL ERROR CONVERGES AS YOU DESCEND BECAUSE THAT IS WHAT THE LANDING
-            CONTROLLER DOES.
+          <p className="text-data text-dim leading-relaxed">
+            Every panel above is the same scene through a different pass,
+            projected with{" "}
+            <span className="text-data">pixels = metres · f / altitude</span> and{" "}
+            <span className="text-data">depth = h · √(1 + (r/f)²)</span>. The
+            lateral error converges as you descend because that is what the
+            landing controller does.
           </p>
         </div>
       </div>

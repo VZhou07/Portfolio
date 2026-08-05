@@ -45,12 +45,17 @@ export function NavRail() {
     if (!ul) return;
 
     const measure = () => {
+      /* Measure against the list's own box. offsetLeft/offsetTop cannot be used
+         here: each <li> is positioned, so it becomes the offsetParent and every
+         waypoint would report the same local centre. */
+      const base = ul.getBoundingClientRect();
       const found: Centre[] = [];
       for (const el of items.current) {
         if (!el) continue;
+        const r = el.getBoundingClientRect();
         found.push({
-          x: el.offsetLeft + el.offsetWidth / 2,
-          y: el.offsetTop + el.offsetHeight / 2,
+          x: r.left - base.left + r.width / 2,
+          y: r.top - base.top + r.height / 2,
         });
       }
       if (found.length < 2) return;

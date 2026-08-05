@@ -33,8 +33,14 @@ export interface Mission {
   name: string;
   subtitle: string;
   status: StatusCode;
-  /** False renders an explicit "NOT FLIGHT-TESTED" caution flag. */
-  flightTested: boolean;
+  /** False renders an explicit unverified caution flag. */
+  verified: boolean;
+  /**
+   * True when the mission is flight software that can be proven on an airframe.
+   * Ground-segment and non-flight work is described as tested, not flown, so the
+   * verification chip never overclaims.
+   */
+  airborne: boolean;
   domain: Domain;
   org: string;
   window: string;
@@ -127,7 +133,8 @@ export const MISSIONS: Mission[] = [
     name: "SITL RANGE",
     subtitle: "SIMULATION-IN-THE-LOOP TEST ENVIRONMENT",
     status: "DEPLOYED",
-    flightTested: true,
+    verified: true,
+    airborne: true,
     domain: "SIMULATION",
     org: "UWARG · Autonomy",
     window: "[Month Year – Month Year]",
@@ -162,7 +169,8 @@ export const MISSIONS: Mission[] = [
     name: "PRECISION LANDING · APRILTAG",
     subtitle: "OPTIMAL-TARGET TOUCHDOWN, FLIGHT VERIFIED",
     status: "FLIGHT-VERIFIED",
-    flightTested: true,
+    verified: true,
+    airborne: true,
     domain: "PERCEPTION",
     org: "UWARG · Autonomy",
     window: "[Month Year – Month Year]",
@@ -198,7 +206,8 @@ export const MISSIONS: Mission[] = [
     name: "PRECISION LANDING · ORB",
     subtitle: "NON-OPTIMAL TARGETS, CLASSICAL FEATURES",
     status: "INTEGRATION",
-    flightTested: false,
+    verified: false,
+    airborne: true,
     domain: "PERCEPTION",
     org: "UWARG · Autonomy",
     window: "[Month Year – Present]",
@@ -231,7 +240,8 @@ export const MISSIONS: Mission[] = [
     name: "PRECISION LANDING · XFEAT",
     subtitle: "NON-OPTIMAL TARGETS, LEARNED FEATURES",
     status: "IN PROGRESS",
-    flightTested: false,
+    verified: false,
+    airborne: true,
     domain: "MACHINE LEARNING",
     org: "UWARG · Autonomy",
     window: "[Month Year – Present]",
@@ -264,7 +274,8 @@ export const MISSIONS: Mission[] = [
     name: "AEAC TARGET MAPPING STACK",
     subtitle: "COMPETITION GROUND SEGMENT, END TO END",
     status: "IN PROGRESS",
-    flightTested: false,
+    verified: false,
+    airborne: false,
     domain: "FULL-STACK",
     org: "UWARG · AEAC 2026 Task 1",
     window: "[Month Year – Present]",
@@ -298,7 +309,8 @@ export const MISSIONS: Mission[] = [
     name: "NEURAL NETWORK FROM SCRATCH",
     subtitle: "FEED-FORWARD ANN IN C++ / EIGEN, NO FRAMEWORK",
     status: "COMPLETE",
-    flightTested: true,
+    verified: true,
+    airborne: false,
     domain: "MACHINE LEARNING",
     org: "Personal",
     window: "[Month Year – Month Year]",
@@ -324,7 +336,8 @@ export const MISSIONS: Mission[] = [
     name: "CLASSLY",
     subtitle: "DEPLOYED FULL-STACK PRODUCT, FRONT + BACK",
     status: "DEPLOYED",
-    flightTested: true,
+    verified: true,
+    airborne: false,
     domain: "FULL-STACK",
     org: "Personal",
     window: "[Month Year – Month Year]",

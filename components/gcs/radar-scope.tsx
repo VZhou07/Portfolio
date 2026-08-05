@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useOnScreen } from "@/components/gcs/reveal";
 import { CONTACTS, clamp, statusStyle } from "@/lib/derive";
 import { useFlight, useTelemetry, useTelemetryThrottled } from "@/lib/flight-computer";
 
@@ -11,13 +12,16 @@ const BEAM = 24;
  * Mission scope. The contacts are the real mission list:
  *   bearing = engineering domain (fixed sectors)
  *   range   = position in the mission log, newest closest in
- * The sweep is not on a fixed loop — it accelerates with your scroll speed, and
- * contacts brighten as the beam crosses them. Each contact is a real button that
- * slews the page to that mission.
+ * The sweep rate tracks your scroll speed rather than running at a fixed pace,
+ * it stops entirely when the scope scrolls off screen or under
+ * prefers-reduced-motion, and contacts brighten as the beam crosses them. Each
+ * contact is a real button that slews the page to that mission.
  */
 export function RadarScope() {
   const { goTo, reducedMotion } = useFlight();
 
+  const host = useRef<HTMLDivElement>(null);
+  const onScreen = useOnScreen(host, "80px");
   const sweep = useRef<SVGGElement>(null);
   const dots = useRef<(HTMLButtonElement | null)[]>([]);
   const rate = useRef<HTMLSpanElement>(null);
@@ -25,6 +29,8 @@ export function RadarScope() {
   const [held, setHeld] = useState<number | null>(null);
 
   useTelemetry((t) => {
+    if (!onScreen) return;
+
     /* sweep rate responds to how fast you are moving through the document */
     const degPerSec = reducedMotion ? 0 : clamp(38 + t.groundSpeed * 22, 38, 260);
     angle.current = (angle.current + degPerSec * t.dt) % 360;
@@ -61,7 +67,7 @@ export function RadarScope() {
   );
 
   return (
-    <div>
+    <div ref={host}>
       <div className="relative aspect-square w-full">
         <svg
           viewBox="0 0 200 200"

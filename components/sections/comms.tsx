@@ -152,9 +152,9 @@ export function Comms() {
           >
             UPLINK COMPOSER
           </h3>
-          <p className="text-micro text-dim mb-5">
-            VALIDATED CLIENT-SIDE, THEN HANDED TO YOUR MAIL CLIENT. NO BACKEND, NO
-            THIRD PARTY, NOTHING STORED.
+          <p className="text-data text-dim mb-5 leading-relaxed">
+            Validated in the browser, then handed to your mail client. No backend,
+            no third party, nothing stored.
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -279,37 +279,30 @@ export function Comms() {
           </div>
 
           {/* one live region for the whole form */}
-          <p
-            role="status"
-            aria-live="polite"
-            className="text-micro mt-4 min-h-4"
-          >
-            {status === "SENT" && (
-              <span className="text-nominal">
-                TRANSMISSION QUEUED — YOUR MAIL CLIENT SHOULD BE OPENING. IF IT DID
-                NOT, USE COPY TRANSMISSION.
-              </span>
-            )}
-            {status === "COPIED" && (
-              <span className="text-data">
-                TRANSMISSION COPIED TO CLIPBOARD.
-              </span>
-            )}
-            {status === "IDLE" && Object.keys(errors).length > 0 && (
+          <p role="status" aria-live="polite" className="text-data mt-4 min-h-5">
+            {Object.values(errors).filter(Boolean).length > 0 ? (
               <span className="text-fault">
-                {Object.values(errors).filter(Boolean).length} FIELD(S) NEED
-                ATTENTION.
+                {Object.values(errors).filter(Boolean).length} field
+                {Object.values(errors).filter(Boolean).length === 1 ? "" : "s"} need
+                attention.
               </span>
-            )}
+            ) : status === "SENT" ? (
+              <span className="text-nominal">
+                Transmission queued — your mail client should be opening. If it did
+                not, use COPY TRANSMISSION.
+              </span>
+            ) : status === "COPIED" ? (
+              <span className="text-data">Transmission copied to clipboard.</span>
+            ) : null}
           </p>
 
           {!mailReady && (
-            <p className="border-caution/40 text-caution text-micro mt-3 border border-dashed p-3 leading-relaxed">
-              TRANSMIT IS DISABLED BECAUSE{" "}
-              <code className="text-data">COMMS[0].value</code> IN{" "}
-              <code className="text-data">lib/content.ts</code> IS STILL A
-              PLACEHOLDER. DROP YOUR REAL ADDRESS IN AND THE BUTTON ARMS ITSELF —
-              THE SITE WILL NOT SHIP A BUTTON THAT GOES NOWHERE.
+            <p className="border-caution/40 text-caution text-data mt-3 border border-dashed p-3 leading-relaxed">
+              TRANSMIT is disabled because{" "}
+              <code className="text-data">COMMS[0].value</code> in{" "}
+              <code className="text-data">lib/content.ts</code> is still a
+              placeholder. Drop your real address in and the button arms itself —
+              this site will not ship a button that goes nowhere.
             </p>
           )}
         </form>

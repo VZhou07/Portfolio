@@ -73,7 +73,7 @@ export function Preflight() {
                 {[
                   { k: "LOCATION", v: PROFILE.location },
                   { k: "SORTIES", v: String(FLEET.missions) },
-                  { k: "FLIGHT-TESTED", v: `${FLEET.flightTested}/${FLEET.missions}` },
+                  { k: "VERIFIED", v: `${FLEET.verified}/${FLEET.missions}` },
                   { k: "ACTIVE", v: String(FLEET.active) },
                 ].map((cell) => (
                   <div key={cell.k} className="bg-panel/60 px-3 py-3">

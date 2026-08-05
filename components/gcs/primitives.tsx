@@ -106,27 +106,30 @@ export function Rule({ className = "" }: { className?: string }) {
 
 export function StatusChip({
   status,
-  flightTested = true,
+  verification,
 }: {
   status: StatusCode;
-  flightTested?: boolean;
+  /** Accurate per-mission verification wording from lib/derive.ts. */
+  verification?: { label: string; ok: boolean };
 }) {
   const s = statusStyle(status);
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       <span
         className={`inline-flex items-center gap-1.5 border px-2 py-1 ${s.border} ${s.text} text-micro`}
-        title={s.note}
       >
         <span aria-hidden="true" className={`h-1.5 w-1.5 ${s.dot}`} />
         {status}
       </span>
-      {!flightTested && (
+      {verification && (
         <span
-          className="border-fault/40 text-fault text-micro border px-2 py-1"
-          title="Written and integrated, but not yet verified on hardware."
+          className={`text-micro border px-2 py-1 ${
+            verification.ok
+              ? "border-nominal/40 text-nominal"
+              : "border-fault/40 text-fault"
+          }`}
         >
-          NOT FLIGHT-TESTED
+          {verification.label}
         </span>
       )}
     </span>

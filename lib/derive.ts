@@ -64,6 +64,41 @@ export function statusStyle(status: StatusCode): StatusStyle {
   return STATUS_STYLES[status];
 }
 
+/**
+ * Honest verification wording. Flight software can be flown; a C++ neural net or
+ * a web app cannot, so those are reported as tested rather than airborne.
+ */
+export function verification(mission: Mission): {
+  label: string;
+  detail: string;
+  ok: boolean;
+} {
+  if (mission.airborne) {
+    return mission.verified
+      ? {
+          label: "FLOWN ON AIRFRAME",
+          detail: "Proven on the vehicle, not only in simulation.",
+          ok: true,
+        }
+      : {
+          label: "NOT FLIGHT-TESTED",
+          detail: "Written and integrated, but not yet verified on hardware.",
+          ok: false,
+        };
+  }
+  return mission.verified
+    ? {
+        label: "TESTED / RUNNING",
+        detail: "Builds, runs and does what it claims — ground software.",
+        ok: true,
+      }
+    : {
+        label: "UNVERIFIED",
+        detail: "Still being built; results not confirmed yet.",
+        ok: false,
+      };
+}
+
 /* -------------------------------------------------------------------------- */
 /* SKILL SIGNAL STRENGTH                                                      */
 /* Level = how many missions actually list the skill. Real, checkable, and it  */
@@ -188,7 +223,7 @@ export const CONTACTS: Contact[] = MISSIONS.map((mission, i) => {
 
 export const FLEET = {
   missions: TOTAL_MISSIONS,
-  flightTested: MISSIONS.filter((m) => m.flightTested).length,
+  verified: MISSIONS.filter((m) => m.verified).length,
   active: MISSIONS.filter(
     (m) => m.status === "IN PROGRESS" || m.status === "INTEGRATION",
   ).length,

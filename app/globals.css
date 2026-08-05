@@ -321,7 +321,7 @@
   width: 100%;
   height: 34px;
   background: transparent;
-  cursor: ns-resize;
+  cursor: ew-resize;
 }
 .gcs-lever::-webkit-slider-runnable-track {
   height: 6px;

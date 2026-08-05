@@ -131,6 +131,8 @@ export function FlightComputer({ children }: { children: ReactNode }) {
 
   /* Raw pointer state, folded into telemetry inside the loop. */
   const pointer = useRef({ x: 0, y: 0, inside: false, hot: false });
+  /* Document height, measured on resize — never read inside the frame loop. */
+  const docHeight = useRef(0);
 
   const markBooted = useCallback(() => setBooted(true), []);
 
@@ -194,6 +196,7 @@ export function FlightComputer({ children }: { children: ReactNode }) {
   useEffect(() => {
     const measure = () => {
       const scrollY = window.scrollY;
+      docHeight.current = document.documentElement.scrollHeight;
       sections.current = SECTIONS.map((s) => {
         const el = document.getElementById(s.id);
         if (!el) return { id: s.id, top: 0, height: 1, bearing: s.bearing };
@@ -236,12 +239,12 @@ export function FlightComputer({ children }: { children: ReactNode }) {
       const dt = Math.min(0.1, Math.max(0.0005, (now - last) / 1000));
       last = now;
 
-      /* --- reads (no writes above this line) --- */
+      /* --- reads: scroll position only. Geometry comes from the cache, so the
+             loop never forces a layout. --- */
       const scrollY = window.scrollY;
       const vh = window.innerHeight;
       const vw = window.innerWidth;
-      const docHeight = document.documentElement.scrollHeight;
-      const scrollable = Math.max(1, docHeight - vh);
+      const scrollable = Math.max(1, docHeight.current - vh);
 
       const rawVelocity = (scrollY - lastScroll) / dt;
       lastScroll = scrollY;

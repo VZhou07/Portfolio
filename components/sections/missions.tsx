@@ -9,7 +9,7 @@ import {
   type Mission,
   type StatusCode,
 } from "@/lib/content";
-import { STACK_INDEX, STATUS_INDEX, statusStyle } from "@/lib/derive";
+import { STACK_INDEX, STATUS_INDEX, statusStyle, verification } from "@/lib/derive";
 
 const DEF = SECTIONS[2];
 
@@ -192,6 +192,22 @@ export function Missions() {
               </button>
             )}
           </div>
+
+          {/* status meanings, spelled out — not hidden in a hover tooltip */}
+          <dl className="border-rule mt-3 grid gap-x-6 gap-y-1 border-t pt-3 sm:grid-cols-2">
+            {STATUS_INDEX.map((s) => (
+              <div key={s.status} className="flex gap-2">
+                <dt
+                  className={`text-micro shrink-0 ${statusStyle(s.status).text}`}
+                >
+                  {s.status}
+                </dt>
+                <dd className="text-data text-dim min-w-0">
+                  {statusStyle(s.status).note}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
         {/* ── results ───────────────────────────────────────────────────── */}
@@ -321,6 +337,7 @@ function MissionRow({
 }) {
   const panelId = `${mission.id}-log`;
   const tone = statusStyle(mission.status);
+  const verify = verification(mission);
   const serial = mission.id.replace("msn-", "");
 
   return (
@@ -338,7 +355,7 @@ function MissionRow({
             <span aria-hidden="true" className={`h-2 w-2 rotate-45 ${tone.dot}`} />
           </div>
           <p className="text-micro text-dim mb-3">{mission.domain}</p>
-          <StatusChip status={mission.status} flightTested={mission.flightTested} />
+          <StatusChip status={mission.status} verification={verify} />
           <dl className="text-micro mt-3 space-y-1">
             <div className="flex gap-2">
               <dt className="text-dim w-14 shrink-0">ORG</dt>
@@ -427,8 +444,8 @@ function MissionRow({
                 { k: "STATUS", v: mission.status, cls: tone.text },
                 {
                   k: "VERIFIED",
-                  v: mission.flightTested ? "ON AIRFRAME" : "NOT YET",
-                  cls: mission.flightTested ? "text-nominal" : "text-fault",
+                  v: verify.label,
+                  cls: verify.ok ? "text-nominal" : "text-fault",
                 },
                 { k: "STACK", v: `${mission.stack.length} ITEMS`, cls: "text-data" },
                 { k: "DOMAIN", v: mission.domain, cls: "text-mid" },

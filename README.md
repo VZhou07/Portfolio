@@ -42,6 +42,10 @@ Two things worth knowing:
   stack tokens; `lib/derive.ts` counts how many missions list them and that count
   is the bar height. Keep stack strings consistent between `MISSIONS[].stack` and
   `SKILL_GROUPS[].skills[].matches` and the instrument panel stays honest.
+- **Verification wording is per mission.** Each mission has `verified` (does it
+  actually work) and `airborne` (is it flight software at all). Flight software
+  reads `FLOWN ON AIRFRAME` or `NOT FLIGHT-TESTED`; ground software reads
+  `TESTED / RUNNING` or `UNVERIFIED`, so a web app is never described as flown.
 
 ## Add the landing footage
 

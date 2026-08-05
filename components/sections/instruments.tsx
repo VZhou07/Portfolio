@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { Frame, MicroLabel } from "@/components/gcs/primitives";
 import { Reveal } from "@/components/gcs/reveal";
 import { Section } from "@/components/gcs/section";
-import { MISSIONS, SECTIONS } from "@/lib/content";
+import { MISSIONS, SECTIONS, isPlaceholder } from "@/lib/content";
 import { SKILL_PEAK, SKILL_STATS } from "@/lib/derive";
 
 const DEF = SECTIONS[5];
@@ -45,9 +45,11 @@ export function Instruments() {
                       <span className="text-data text-mid min-w-0 flex-1 truncate">
                         {s.name}
                       </span>
-                      <span className="text-micro text-dim tnum shrink-0">
-                        SINCE {s.since}
-                      </span>
+                      {!isPlaceholder(s.since) && (
+                        <span className="text-micro text-dim tnum shrink-0">
+                          SINCE {s.since}
+                        </span>
+                      )}
                       <span
                         className={`text-micro tnum w-14 shrink-0 text-right ${
                           s.count > 0 ? "text-signal" : "text-dim"
