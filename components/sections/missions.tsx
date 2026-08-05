@@ -378,8 +378,8 @@ function MissionRow({
 
           {/* stack tokens double as filters */}
           <ul className="mb-4 flex flex-wrap gap-1.5">
-            {mission.stack.map((s) => (
-              <li key={s}>
+            {mission.stack.map((s, i) => (
+              <li key={`${s}-${i}`}>
                 <button
                   type="button"
                   onClick={() => onStack(s)}
@@ -405,8 +405,8 @@ function MissionRow({
                 {open ? "▴" : "▾"}
               </span>
             </button>
-            {mission.links.map((l) => (
-              <LinkChip key={l.href} label={l.label} href={l.href} />
+            {mission.links.map((l, i) => (
+              <LinkChip key={`${l.href}-${i}`} label={l.label} href={l.href} />
             ))}
           </div>
         </div>

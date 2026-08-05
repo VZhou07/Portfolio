@@ -39,8 +39,8 @@ export function Instruments() {
               bodyClassName="p-3 sm:p-4"
             >
               <ul className="space-y-3">
-                {group.skills.map((s) => (
-                  <li key={s.name}>
+                {group.skills.map((s, si) => (
+                  <li key={`${s.name}-${si}`}>
                     <div className="mb-1 flex items-baseline gap-2">
                       <span className="text-data text-mid min-w-0 flex-1 truncate">
                         {s.name}

@@ -312,8 +312,8 @@ export function Comms() {
           <div className="border-rule bg-panel/70 gcs-notch border p-4 sm:p-5">
             <MicroLabel className="mb-3">DIRECT CHANNELS</MicroLabel>
             <ul className="divide-rule divide-y">
-              {COMMS.map((c) => (
-                <li key={c.code} className="py-3 first:pt-0 last:pb-0">
+              {COMMS.map((c, i) => (
+                <li key={`${c.code}-${i}`} className="py-3 first:pt-0 last:pb-0">
                   <div className="flex items-baseline gap-2">
                     <span className="text-micro text-signal tnum shrink-0">
                       {c.code}

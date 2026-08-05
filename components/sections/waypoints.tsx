@@ -147,9 +147,9 @@ export function Waypoints() {
                 <>
                   <MicroLabel className="mb-1.5">CARRIED</MicroLabel>
                   <ul className="flex flex-wrap gap-1.5">
-                    {wp.tags.map((tag) => (
+                    {wp.tags.map((tag, k) => (
                       <li
-                        key={tag}
+                        key={`${tag}-${k}`}
                         className="border-rule text-micro text-dim border px-2 py-0.5"
                       >
                         {tag}

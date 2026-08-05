@@ -53,8 +53,8 @@ export function Dossier() {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <LinkChip label="RESUME" href={PROFILE.resumeUrl} tone="data" />
-              {COMMS.filter((c) => c.label !== "EMAIL").map((c) => (
-                <LinkChip key={c.code} label={c.label} href={c.href} />
+              {COMMS.filter((c) => c.label !== "EMAIL").map((c, i) => (
+                <LinkChip key={`${c.code}-${i}`} label={c.label} href={c.href} />
               ))}
             </div>
           </Frame>
