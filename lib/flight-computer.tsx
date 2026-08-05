@@ -68,6 +68,8 @@ export interface Telemetry {
   pointerInside: boolean;
   /** True when the pointer is over something clickable. */
   pointerHot: boolean;
+  /** What kind of target is under the pointer: LINK, BTN, FIELD, CTRL or "". */
+  pointerKind: string;
 }
 
 type FrameCallback = (t: Telemetry) => void;
@@ -106,6 +108,7 @@ const INITIAL: Telemetry = {
   pointerNY: 0,
   pointerInside: false,
   pointerHot: false,
+  pointerKind: "",
 };
 
 const FlightContext = createContext<FlightApi | null>(null);
@@ -130,7 +133,7 @@ export function FlightComputer({ children }: { children: ReactNode }) {
   const [pointerFine, setPointerFine] = useState(false);
 
   /* Raw pointer state, folded into telemetry inside the loop. */
-  const pointer = useRef({ x: 0, y: 0, inside: false, hot: false });
+  const pointer = useRef({ x: 0, y: 0, inside: false, hot: false, kind: "" });
   /* Document height, measured on resize — never read inside the frame loop. */
   const docHeight = useRef(0);
 
@@ -167,16 +170,29 @@ export function FlightComputer({ children }: { children: ReactNode }) {
   useEffect(() => {
     const HOT = "a,button,input,textarea,select,summary,[role='button']";
 
+    /** Short label for whatever is under the cursor — the reticle reports it. */
+    const classify = (el: Element | null): string => {
+      if (!el) return "";
+      const tag = el.tagName.toLowerCase();
+      if (tag === "a") return "LINK";
+      if (tag === "button") return "BTN";
+      if (tag === "input" || tag === "textarea" || tag === "select") return "FIELD";
+      return "CTRL";
+    };
+
     const move = (e: PointerEvent) => {
       const p = pointer.current;
       p.x = e.clientX;
       p.y = e.clientY;
       p.inside = true;
-      p.hot = e.target instanceof Element ? e.target.closest(HOT) !== null : false;
+      const target = e.target instanceof Element ? e.target.closest(HOT) : null;
+      p.hot = target !== null;
+      p.kind = classify(target);
     };
     const leave = () => {
       pointer.current.inside = false;
       pointer.current.hot = false;
+      pointer.current.kind = "";
     };
 
     window.addEventListener("pointermove", move, { passive: true });
@@ -301,6 +317,7 @@ export function FlightComputer({ children }: { children: ReactNode }) {
       t.pointerNY = vh ? (ptr.y / vh) * 2 - 1 : 0;
       t.pointerInside = ptr.inside;
       t.pointerHot = ptr.hot;
+      t.pointerKind = ptr.kind;
 
       /* --- writes --- */
       for (const cb of subscribers.current) cb(t);
