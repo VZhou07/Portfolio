@@ -49,6 +49,8 @@ export interface Telemetry {
   /** Interpolated compass heading in degrees. */
   heading: number;
   fps: number;
+  /** Seconds elapsed since the previous frame. */
+  dt: number;
   /** Seconds since mount. */
   elapsed: number;
   vw: number;
@@ -57,6 +59,15 @@ export interface Telemetry {
   sectionIndex: number;
   /** Progress through the active section, 0..1. */
   sectionProgress: number;
+  /* -- pointer (one listener for the whole site) ------------------------- */
+  pointerX: number;
+  pointerY: number;
+  /** Pointer offset from viewport centre, -1..1. */
+  pointerNX: number;
+  pointerNY: number;
+  pointerInside: boolean;
+  /** True when the pointer is over something clickable. */
+  pointerHot: boolean;
 }
 
 type FrameCallback = (t: Telemetry) => void;
@@ -82,12 +93,19 @@ const INITIAL: Telemetry = {
   groundSpeed: 0,
   heading: SECTIONS[0].bearing,
   fps: 60,
+  dt: 1 / 60,
   elapsed: 0,
   vw: 0,
   vh: 0,
   mode: "HOLD",
   sectionIndex: 0,
   sectionProgress: 0,
+  pointerX: 0,
+  pointerY: 0,
+  pointerNX: 0,
+  pointerNY: 0,
+  pointerInside: false,
+  pointerHot: false,
 };
 
 const FlightContext = createContext<FlightApi | null>(null);
@@ -110,6 +128,9 @@ export function FlightComputer({ children }: { children: ReactNode }) {
   const [booted, setBooted] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [pointerFine, setPointerFine] = useState(false);
+
+  /* Raw pointer state, folded into telemetry inside the loop. */
+  const pointer = useRef({ x: 0, y: 0, inside: false, hot: false });
 
   const markBooted = useCallback(() => setBooted(true), []);
 
@@ -137,6 +158,35 @@ export function FlightComputer({ children }: { children: ReactNode }) {
     return () => {
       motion.removeEventListener("change", sync);
       pointer.removeEventListener("change", sync);
+    };
+  }, []);
+
+  /* -- pointer: one passive listener, shared by every instrument ---------- */
+  useEffect(() => {
+    const HOT = "a,button,input,textarea,select,summary,[role='button']";
+
+    const move = (e: PointerEvent) => {
+      const p = pointer.current;
+      p.x = e.clientX;
+      p.y = e.clientY;
+      p.inside = true;
+      p.hot = e.target instanceof Element ? e.target.closest(HOT) !== null : false;
+    };
+    const leave = () => {
+      pointer.current.inside = false;
+      pointer.current.hot = false;
+    };
+
+    window.addEventListener("pointermove", move, { passive: true });
+    window.addEventListener("pointerdown", move, { passive: true });
+    document.addEventListener("pointerleave", leave);
+    window.addEventListener("blur", leave);
+
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerdown", move);
+      document.removeEventListener("pointerleave", leave);
+      window.removeEventListener("blur", leave);
     };
   }, []);
 
@@ -233,12 +283,21 @@ export function FlightComputer({ children }: { children: ReactNode }) {
       t.groundSpeed = smoothed / PX_PER_METRE;
       t.heading = (heading + 360) % 360;
       t.fps = fps;
+      t.dt = dt;
       t.elapsed = (now - started) / 1000;
       t.vw = vw;
       t.vh = vh;
       t.mode = mode;
       t.sectionIndex = idx;
       t.sectionProgress = sectionProgress;
+
+      const ptr = pointer.current;
+      t.pointerX = ptr.x;
+      t.pointerY = ptr.y;
+      t.pointerNX = vw ? (ptr.x / vw) * 2 - 1 : 0;
+      t.pointerNY = vh ? (ptr.y / vh) * 2 - 1 : 0;
+      t.pointerInside = ptr.inside;
+      t.pointerHot = ptr.hot;
 
       /* --- writes --- */
       for (const cb of subscribers.current) cb(t);

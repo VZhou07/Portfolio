@@ -210,8 +210,7 @@ export const STACK_INDEX: { token: string; count: number }[] = Object.entries(
   .map(([token, count]) => ({ token, count }))
   .sort((a, b) => b.count - a.count || a.token.localeCompare(b.token));
 
-export const STATUS_INDEX: { status: StatusCode; count: number }[] =
-  Object.entries(
+export const STATUS_INDEX: { status: StatusCode; count: number }[] =  Object.entries(
     MISSIONS.reduce<Record<string, number>>((acc, m) => {
       acc[m.status] = (acc[m.status] ?? 0) + 1;
       return acc;
@@ -219,6 +218,28 @@ export const STATUS_INDEX: { status: StatusCode; count: number }[] =
   )
     .map(([status, count]) => ({ status: status as StatusCode, count }))
     .sort((a, b) => b.count - a.count);
+
+/* -------------------------------------------------------------------------- */
+/* DOMAIN DISTRIBUTION — where the work actually sits                          */
+/* -------------------------------------------------------------------------- */
+
+export const DOMAIN_INDEX: {
+  domain: Domain;
+  count: number;
+  share: number;
+  bearing: number;
+}[] = (Object.keys(DOMAIN_BEARING) as Domain[])
+  .map((domain) => {
+    const count = MISSIONS.filter((m) => m.domain === domain).length;
+    return {
+      domain,
+      count,
+      share: count / TOTAL_MISSIONS,
+      bearing: DOMAIN_BEARING[domain],
+    };
+  })
+  .filter((d) => d.count > 0)
+  .sort((a, b) => b.count - a.count || a.domain.localeCompare(b.domain));
 
 /* -------------------------------------------------------------------------- */
 /* SMALL NUMERIC HELPERS (used by the flight computer + instruments)          */

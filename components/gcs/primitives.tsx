@@ -258,11 +258,13 @@ export function SectionHeading({
   title,
   subtitle,
   aside,
+  titleId,
 }: {
   code: string;
   title: string;
   subtitle: string;
   aside?: ReactNode;
+  titleId?: string;
 }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4 sm:mb-10">
@@ -272,7 +274,9 @@ export function SectionHeading({
           <span aria-hidden="true" className="bg-rule-hi h-px w-8" />
           <span className="text-micro text-dim">{subtitle}</span>
         </div>
-        <h2 className="font-display text-h2 text-ink tracking-tight">{title}</h2>
+        <h2 id={titleId} className="font-display text-h2 text-ink tracking-tight">
+          {title}
+        </h2>
       </div>
       {aside && <div className="shrink-0">{aside}</div>}
     </div>
