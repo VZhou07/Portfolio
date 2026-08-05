@@ -91,45 +91,6 @@ export function MicroLabel({
   );
 }
 
-/** label / big value / unit — the standard telemetry cell. */
-export function Readout({
-  label,
-  value,
-  unit,
-  tone = "data",
-  valueId,
-  size = "md",
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  tone?: Tone;
-  /** id so the flight computer can write into the value node directly. */
-  valueId?: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const sizes = {
-    sm: "text-data",
-    md: "text-h3",
-    lg: "text-readout",
-  } as const;
-
-  return (
-    <div className="min-w-0">
-      <MicroLabel>{label}</MicroLabel>
-      <div className="flex items-baseline gap-1">
-        <span
-          id={valueId}
-          className={`font-display tnum ${sizes[size]} ${TONE_TEXT[tone]} font-semibold`}
-        >
-          {value}
-        </span>
-        {unit && <span className="text-micro text-dim">{unit}</span>}
-      </div>
-    </div>
-  );
-}
-
 /** Hairline divider with a measurement tick, used between stacked blocks. */
 export function Rule({ className = "" }: { className?: string }) {
   return (

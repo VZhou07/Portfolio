@@ -77,7 +77,7 @@ export function Dossier() {
                   </div>
                 ))}
               </dl>
-              <p className="text-micro text-dim/80 mt-4 leading-relaxed">
+              <p className="text-micro text-dim mt-4 leading-relaxed">
                 COUNTED FROM THE MISSION LOG BELOW — NOT HAND-WRITTEN
               </p>
             </Frame>

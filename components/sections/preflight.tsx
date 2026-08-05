@@ -98,7 +98,7 @@ export function Preflight() {
                 <LinkChip label="RESUME" href={PROFILE.resumeUrl} tone="data" />
               </div>
 
-              <p className="text-micro text-dim/80 mt-5">
+              <p className="text-micro text-dim mt-5">
                 PRESS <span className="text-signal">1</span>–
                 <span className="text-signal">{SECTIONS.length}</span> TO SLEW ·
                 SCROLL TO DESCEND · THE DRONE ON THE RAIL IS YOUR POSITION

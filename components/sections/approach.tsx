@@ -234,7 +234,12 @@ export function Approach() {
     }
   }, 10);
 
-  /* ── redraw on resize (the canvases are CSS-sized) ─────────────────────── */
+  /* ── redraw on resize, and whenever the bay comes back on screen ───────── */
+  useEffect(() => {
+    /* force the next frame to redraw: the guard below compares against this */
+    lastDrawn.current = -1;
+  }, [onScreen]);
+
   useEffect(() => {
     const invalidate = () => {
       lastDrawn.current = -1;
@@ -575,10 +580,10 @@ export function Approach() {
                   AGL
                 </span>
 
-                <span className="text-micro text-mid/80 tnum absolute right-3 bottom-2">
+                <span className="text-micro text-mid tnum absolute right-3 bottom-2">
                   <span ref={tcText}>SIM F0</span>
                 </span>
-                <span className="text-micro text-mid/80 absolute bottom-2 left-3">
+                <span className="text-micro text-mid absolute bottom-2 left-3">
                   CAM · DOWN · 1280×720
                 </span>
               </div>
@@ -590,7 +595,7 @@ export function Approach() {
                 type="button"
                 onClick={toggleVideo}
                 disabled={downlink !== "READY"}
-                className="border-rule text-micro text-mid hover:border-data hover:text-data disabled:text-dim/50 border px-3 py-1.5 transition-colors disabled:cursor-not-allowed"
+                className="border-rule text-micro text-mid hover:border-data hover:text-data disabled:text-dim/70 border px-3 py-1.5 transition-colors disabled:cursor-not-allowed"
               >
                 {playing ? "PAUSE CLIP" : "PLAY CLIP"}
               </button>
@@ -598,7 +603,7 @@ export function Approach() {
                 type="button"
                 onClick={toggleMute}
                 disabled={downlink !== "READY"}
-                className="border-rule text-micro text-mid hover:border-data hover:text-data disabled:text-dim/50 border px-3 py-1.5 transition-colors disabled:cursor-not-allowed"
+                className="border-rule text-micro text-mid hover:border-data hover:text-data disabled:text-dim/70 border px-3 py-1.5 transition-colors disabled:cursor-not-allowed"
               >
                 {muted ? "UNMUTE" : "MUTE"}
               </button>
@@ -649,7 +654,7 @@ export function Approach() {
             ))}
           </div>
 
-          <p className="text-micro text-dim/90 leading-relaxed">
+          <p className="text-micro text-dim leading-relaxed">
             EVERY PANEL ABOVE IS THE SAME SCENE THROUGH A DIFFERENT PASS, PROJECTED
             WITH <span className="text-data">pixels = metres · f / altitude</span>{" "}
             AND <span className="text-data">depth = h · √(1 + (r/f)²)</span>. THE

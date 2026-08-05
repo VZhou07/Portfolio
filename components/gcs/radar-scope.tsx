@@ -186,7 +186,7 @@ export function RadarScope() {
             <span ref={rate}>6.3</span> RPM
           </dd>
         </div>
-        <p className="text-dim/80 col-span-2 mt-1 leading-relaxed">
+        <p className="text-dim col-span-2 mt-1 leading-relaxed">
           BEARING = DOMAIN · RANGE = LOG POSITION
         </p>
       </dl>

@@ -15,7 +15,11 @@ export default function Page() {
     <SiteShell>
       {/* pt-11 clears the telemetry strip, pb-20 the mobile waypoint bar,
           lg:pl-18 the desktop rail */}
-      <main className="gcs-grid pt-11 pb-20 lg:pb-0 lg:pl-18">
+      <main
+        id="deck"
+        tabIndex={-1}
+        className="gcs-grid pt-11 pb-20 lg:pb-0 lg:pl-18"
+      >
         <Preflight />
         <Dossier />
         <Missions />

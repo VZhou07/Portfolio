@@ -220,7 +220,7 @@ function Field({
       <dt className="text-dim">{label}</dt>
       <dd className="flex items-baseline gap-0.5">
         {children}
-        {unit && <span className="text-dim/70">{unit}</span>}
+        {unit && <span className="text-dim">{unit}</span>}
       </dd>
     </div>
   );

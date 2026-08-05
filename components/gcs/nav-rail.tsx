@@ -176,7 +176,7 @@ export function NavRail() {
   return (
     <nav
       aria-label="Mission waypoints"
-      className={`bg-void/95 border-rule fixed z-40 border-t backdrop-blur-sm transition-opacity duration-500 lg:inset-x-auto lg:inset-y-0 lg:left-0 lg:h-auto lg:w-18 lg:border-t-0 lg:border-r ${
+      className={`gcs-chrome-gate bg-void/95 border-rule fixed z-40 border-t backdrop-blur-sm transition-opacity duration-500 lg:inset-x-auto lg:inset-y-0 lg:left-0 lg:h-auto lg:w-18 lg:border-t-0 lg:border-r ${
         booted ? "opacity-100" : "opacity-0"
       } inset-x-0 bottom-0`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}

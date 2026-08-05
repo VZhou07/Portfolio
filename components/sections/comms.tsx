@@ -332,7 +332,7 @@ export function Comms() {
                     />
                     <span
                       className={`text-micro shrink-0 ${
-                        isPlaceholder(c.href) ? "text-dim/60" : "text-nominal"
+                        isPlaceholder(c.href) ? "text-dim" : "text-nominal"
                       }`}
                     >
                       {isPlaceholder(c.href) ? "UNSET" : "LIVE"}
@@ -343,7 +343,7 @@ export function Comms() {
                       <span
                         aria-disabled="true"
                         title="Fill this in inside lib/content.ts"
-                        className="text-data text-dim/70 cursor-not-allowed line-through"
+                        className="text-data text-dim cursor-not-allowed line-through"
                       >
                         {c.value}
                       </span>
@@ -408,7 +408,7 @@ function Field({
         <label htmlFor={id} className="text-micro text-mid">
           {label}
         </label>
-        <span id={`${id}-hint`} className="text-micro text-dim/70">
+        <span id={`${id}-hint`} className="text-micro text-dim">
           {hint}
         </span>
       </div>

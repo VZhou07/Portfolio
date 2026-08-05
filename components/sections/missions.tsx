@@ -401,7 +401,7 @@ function MissionRow({
         aria-hidden={!open}
         inert={!open}
         style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
-        className="grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out"
+        className="gcs-collapse grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out"
       >
         <div className="min-h-0">
           <div className="border-rule bg-void/40 grid gap-6 border-t p-4 sm:p-5 lg:grid-cols-12">

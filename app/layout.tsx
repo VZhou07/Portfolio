@@ -54,12 +54,24 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${chakra.variable} ${plexMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Without JS the observers never fire, so unhide everything that is
+            normally revealed on scroll. Nav, meters and flight logs included. */}
+        <noscript>
+          <style>{`
+            .gcs-reveal { opacity: 1 !important; transform: none !important; }
+            .gcs-chrome-gate { opacity: 1 !important; }
+            .gcs-meter { transform: scaleX(var(--level, 1)) !important; }
+            .gcs-collapse { grid-template-rows: 1fr !important; }
+          `}</style>
+        </noscript>
+      </head>
       <body className="bg-void text-ink min-h-full">
         <a
-          href="#missions"
+          href="#deck"
           className="bg-signal text-void focus:ring-data sr-only px-4 py-2 text-label font-semibold tracking-label focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-100"
         >
-          SKIP TO MISSION LIST
+          SKIP TO CONTENT
         </a>
         {children}
       </body>

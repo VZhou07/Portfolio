@@ -260,8 +260,3 @@ export function pad(value: number, intDigits: number, decimals = 1): string {
   const body = int.padStart(intDigits, "0") + (dec ? `.${dec}` : "");
   return (value < 0 ? "-" : "") + body;
 }
-
-/** 143 -> "143", 7 -> "007" for waypoint/ident codes. */
-export function ident(value: number, digits = 3): string {
-  return Math.round(value).toString().padStart(digits, "0");
-}

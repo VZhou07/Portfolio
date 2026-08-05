@@ -78,8 +78,6 @@
     color: var(--color-ink);
     font-family: var(--font-mono);
     font-size: var(--text-body);
-    /* stops iOS Safari from bouncing the fixed HUD chrome */
-    overscroll-behavior-y: none;
   }
 
   h1,
@@ -302,7 +300,8 @@
     background-color 160ms ease;
 }
 .gcs-input::placeholder {
-  color: #5d757c;
+  /* 5.0:1 on --color-void, so the hint is readable, not a ghost */
+  color: #6b858c;
 }
 .gcs-input:hover {
   border-color: var(--color-rule-hi);

@@ -50,7 +50,7 @@ export function Instruments() {
                       </span>
                       <span
                         className={`text-micro tnum w-14 shrink-0 text-right ${
-                          s.count > 0 ? "text-signal" : "text-dim/60"
+                          s.count > 0 ? "text-signal" : "text-dim"
                         }`}
                       >
                         {s.count}/{MISSIONS.length}
@@ -84,7 +84,7 @@ export function Instruments() {
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-micro text-dim/60 mt-1.5">
+                      <p className="text-micro text-dim mt-1.5">
                         NO LOGGED SORTIE YET
                       </p>
                     )}
