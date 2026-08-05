@@ -5,7 +5,9 @@ import { SECTIONS } from "@/lib/content";
 export default function Page() {
   return (
     <SiteShell>
-      <main className="gcs-grid pt-11">
+      {/* pt-11 clears the telemetry strip, pb-20 the mobile waypoint bar,
+          lg:pl-18 the desktop rail */}
+      <main className="gcs-grid pt-11 pb-20 lg:pb-0 lg:pl-18">
         {SECTIONS.map((s) => (
           <section
             key={s.id}
