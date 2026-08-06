@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
 } from "react";
 import { useFlight } from "@/lib/flight-computer";
 import { BootSequence } from "./boot-sequence";
@@ -113,6 +114,36 @@ export function IntroStage() {
     >
       {stage === "post" && <BootSequence onDone={toFlight} />}
       {stage === "flight" && <LandingIntro onDone={release} />}
+
+      {stage === "bang" && (
+        <div aria-hidden="true" className="absolute inset-0">
+          <div className="gcs-flash absolute inset-0" />
+
+          {/* rings and spokes share the flash's origin */}
+          <div className="absolute top-[38vh] left-1/2 h-0 w-0">
+            <div
+              className="gcs-ring border-signal absolute h-[26vmax] w-[26vmax] border-2"
+              style={{ animationDelay: "0ms" }}
+            />
+            <div
+              className="gcs-ring border-data/80 absolute h-[26vmax] w-[26vmax] rounded-full border"
+              style={{ animationDelay: "90ms" }}
+            />
+            {Array.from({ length: 8 }, (_, i) => (
+              <div
+                key={i}
+                className="gcs-spoke bg-signal/70 absolute h-px w-[62vmax]"
+                style={
+                  {
+                    ["--a" as string]: `${i * 45}deg`,
+                    animationDelay: `${40 + i * 12}ms`,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {flying && (
         <button

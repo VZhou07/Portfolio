@@ -50,7 +50,7 @@ export function Preflight() {
                   </span>
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="gcs-hero-plate min-w-0 flex-1">
                   <MicroLabel className="mb-3">OPERATOR</MicroLabel>
                   <h1
                     id={`${DEF.id}-title`}
@@ -107,7 +107,7 @@ export function Preflight() {
           </div>
 
           {/* ── instruments ────────────────────────────────────────────── */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-1 xl:col-span-4">
+          <div className="gcs-hero-bank grid gap-4 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-1 xl:col-span-4">
             <Reveal delay={60}>
               <Frame
                 code="ADI"

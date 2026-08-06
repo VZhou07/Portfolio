@@ -353,6 +353,158 @@ html[data-intro="armed"] .gcs-deck {
   animation: gcs-charge-bar 1200ms linear both;
 }
 
+/* ── the reveal ─────────────────────────────────────────────────────────────
+   One keyframe does the punch and the decaying shake together: two animations
+   on the same element would fight over `transform`. The origin sits near the
+   top third of the viewport, where the name plate lands. */
+@keyframes gcs-deck-punch {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translate3d(0, 0, 0);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1.035) translate3d(-9px, 7px, 0);
+  }
+  20% {
+    transform: scale(1.022) translate3d(8px, -6px, 0);
+  }
+  31% {
+    transform: scale(1.014) translate3d(-6px, -4px, 0);
+  }
+  43% {
+    transform: scale(1.009) translate3d(5px, 4px, 0);
+  }
+  56% {
+    transform: scale(1.005) translate3d(-4px, 2px, 0);
+  }
+  70% {
+    transform: scale(1.003) translate3d(2px, -2px, 0);
+  }
+  85% {
+    transform: scale(1.001) translate3d(-1px, 1px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+html[data-intro="release"] .gcs-deck {
+  transform-origin: 50% 38vh;
+  will-change: transform, opacity;
+  animation: gcs-deck-punch 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* the name plate is thrown out of the blast rather than fading in */
+@keyframes gcs-hero-wobble {
+  0% {
+    opacity: 0;
+    transform: scale(0.58) rotate(-2.6deg);
+  }
+  34% {
+    opacity: 1;
+    transform: scale(1.13) rotate(1.5deg);
+  }
+  52% {
+    transform: scale(0.962) rotate(-0.9deg);
+  }
+  68% {
+    transform: scale(1.032) rotate(0.5deg);
+  }
+  82% {
+    transform: scale(0.99) rotate(-0.2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+html[data-intro="release"] .gcs-hero-plate {
+  transform-origin: left center;
+  animation: gcs-hero-wobble 820ms 40ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* instruments snap in behind it, staggered */
+@keyframes gcs-snap-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+html[data-intro="release"] .gcs-hero-bank > * {
+  animation: gcs-snap-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+html[data-intro="release"] .gcs-hero-bank > *:nth-child(1) {
+  animation-delay: 170ms;
+}
+html[data-intro="release"] .gcs-hero-bank > *:nth-child(2) {
+  animation-delay: 290ms;
+}
+
+/* ── the blast itself: flash, two rings, eight spokes ───────────────────── */
+@keyframes gcs-flash {
+  0% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 0.9;
+  }
+  30% {
+    opacity: 0.26;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.gcs-flash {
+  background: radial-gradient(
+    circle at 50% 38vh,
+    #ffffff 0%,
+    var(--color-signal) 24%,
+    rgba(255, 180, 74, 0) 62%
+  );
+  animation: gcs-flash 520ms ease-out both;
+}
+
+@keyframes gcs-ring {
+  0% {
+    opacity: 0.95;
+    transform: translate3d(-50%, -50%, 0) scale(0.06);
+  }
+  65% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0) scale(7);
+  }
+}
+.gcs-ring {
+  animation: gcs-ring 680ms cubic-bezier(0.1, 0.8, 0.2, 1) both;
+}
+
+@keyframes gcs-spoke {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--a)) scaleX(0);
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) scaleX(1);
+  }
+}
+.gcs-spoke {
+  transform-origin: left center;
+  animation: gcs-spoke 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 /* ============================================================================
    FORM CONTROLS — themed natively so we keep real keyboard/touch semantics
    ========================================================================== */
