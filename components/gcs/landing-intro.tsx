@@ -2,13 +2,28 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { FOOTAGE, MISSIONS } from "@/lib/content";
-import { useTelemetry } from "@/lib/flight-computer";
-import { drawSim, fitCanvas, type Surface } from "@/lib/sim-render";
+import { clamp } from "@/lib/derive";
+import { useTelemetry, useTelemetryThrottled } from "@/lib/flight-computer";
+import {
+  approachOffset,
+  drawSim,
+  fitCanvas,
+  tagConfidence,
+  tagPixels,
+  type Surface,
+} from "@/lib/sim-render";
 
 /* ── flight profile ──────────────────────────────────────────────────────── */
 
 /** Metres AGL the approach starts from — the same ceiling section 04 uses. */
 const CEILING = 12;
+/**
+ * Height of the payload camera above the pad at touchdown. The lens cannot get
+ * closer than the landing gear allows, so the projection stops closing here
+ * instead of diving inside a single tag cell. Real pipelines lose the tag at
+ * about this point for exactly this reason.
+ */
+const CAM_FLOOR = 0.45;
 
 /* ── pacing (ms) — the whole cold-open is budgeted at 7.5 s with the POST ── */
 const BRIEF_MS = 1150;
@@ -23,6 +38,14 @@ const FRAME_Y = 23; /* % inset top/bottom */
 type Phase = "brief" | "descent" | "blank" | "complete";
 
 const MISSION = MISSIONS.find((m) => m.id === FOOTAGE.missionId);
+
+/** Same gates section 04 uses, so the phase names mean the same thing. */
+function phaseOf(alt: number): string {
+  if (alt > 6) return "TRANSIT";
+  if (alt > 2) return "APPROACH";
+  if (alt > 0.3) return "FLARE";
+  return "TOUCHDOWN";
+}
 
 /**
  * ARRIVAL — STAGE TWO
@@ -42,17 +65,24 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
 
   const stage = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const altText = useRef<HTMLSpanElement>(null);
+  const phaseText = useRef<HTMLSpanElement>(null);
+  const confText = useRef<HTMLSpanElement>(null);
+  const errText = useRef<HTMLSpanElement>(null);
 
   /* flight state lives outside React: it changes every frame */
   const alt = useRef(CEILING);
   const surface = useRef<Surface | null>(null);
   const lastDrawn = useRef(-1);
+  /** performance.now() at brake release. 0 until the descent starts. */
+  const descentAt = useRef(0);
 
   /* ── the sequence: one self-driving timer chain ───────────────────────── */
   useEffect(() => {
     let timer = 0;
 
     timer = window.setTimeout(() => {
+      descentAt.current = performance.now();
       setPhase("descent");
       timer = window.setTimeout(() => {
         setPhase("blank");
@@ -81,15 +111,47 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
     };
   }, []);
 
-  /* ── draw the payload camera, redrawing only when the altitude moves ──── */
+  /* ── the descent. Altitude is a function of time, flared into the ground ─ */
   useTelemetry(() => {
+    if (descentAt.current > 0) {
+      const p = clamp((performance.now() - descentAt.current) / DESCENT_MS, 0, 1);
+      /* (1-p)^1.8 falls fast and slows into the flare — the shape of an
+         autoland profile, not a linear slider. */
+      alt.current = CEILING * Math.pow(1 - p, 1.8);
+    }
+
     const a = alt.current;
     if (Math.abs(a - lastDrawn.current) < 0.004) return;
     lastDrawn.current = a;
 
     const s = surface.current;
-    if (s) drawSim(s.ctx, { mode: "rgb", alt: a, w: s.w, h: s.h });
+    if (s) {
+      drawSim(s.ctx, {
+        mode: "rgb",
+        alt: Math.max(a, CAM_FLOOR),
+        w: s.w,
+        h: s.h,
+      });
+    }
   });
+
+  /* ── readouts at 12 Hz: computed from the altitude, not scripted ───────── */
+  useTelemetryThrottled(() => {
+    const a = alt.current;
+    const shown = Math.max(a, CAM_FLOOR);
+    const focal = (surface.current?.w ?? 640) * 0.85;
+    const conf = tagConfidence(shown, tagPixels(shown, focal));
+    const off = approachOffset(a);
+
+    if (altText.current) altText.current.textContent = a.toFixed(2);
+    if (phaseText.current) phaseText.current.textContent = phaseOf(a);
+    if (confText.current) {
+      confText.current.textContent = conf > 0 ? conf.toFixed(2) : "--";
+    }
+    if (errText.current) {
+      errText.current.textContent = Math.hypot(off.x, off.y).toFixed(2);
+    }
+  }, 12);
 
   const framed: CSSProperties = {
     ["--ix" as string]: `${FRAME_X}%`,
@@ -124,6 +186,24 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
         <span className="border-signal/70 absolute right-0 bottom-0 h-5 w-5 border-b border-r" />
         <span className="bg-signal/60 absolute top-1/2 left-1/2 h-px w-7 -translate-x-1/2" />
         <span className="bg-signal/60 absolute top-1/2 left-1/2 h-7 w-px -translate-y-1/2" />
+
+        {/* minimal corner overlay — four numbers, all computed from altitude */}
+        <div className="text-micro absolute inset-x-7 top-1 flex justify-between">
+          <span className="text-data tnum">
+            ALT <span ref={altText}>12.00</span> m
+          </span>
+          <span className="text-signal">
+            <span ref={phaseText}>TRANSIT</span>
+          </span>
+        </div>
+        <div className="text-micro absolute inset-x-7 bottom-1 flex justify-between">
+          <span className="text-dim tnum">
+            TAG CONF <span ref={confText}>--</span>
+          </span>
+          <span className="text-dim tnum">
+            LAT ERR <span ref={errText}>0.00</span> m
+          </span>
+        </div>
       </div>
 
       {/* brief scrim — the feed is already live behind the card */}
