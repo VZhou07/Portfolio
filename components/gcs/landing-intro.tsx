@@ -47,6 +47,12 @@ function phaseOf(alt: number): string {
   return "TOUCHDOWN";
 }
 
+/** 0..1 with eased ends — used for every ramp below. */
+function smoothstep(x: number): number {
+  const t = clamp(x, 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 /**
  * ARRIVAL — STAGE TWO
  * ----------------------------------------------------------------------------
@@ -76,6 +82,10 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   const lastDrawn = useRef(-1);
   /** performance.now() at brake release. 0 until the descent starts. */
   const descentAt = useRef(0);
+  /* last written ramp values, so we only touch style when something moved */
+  const lastGrow = useRef(-1);
+  const lastHud = useRef(-1);
+  const lastFeed = useRef(-1);
 
   /* ── the sequence: one self-driving timer chain ───────────────────────── */
   useEffect(() => {
@@ -121,6 +131,36 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
     }
 
     const a = alt.current;
+
+    /* The window the feed shows through opens up as the aircraft comes down,
+       so the tag grows from both the projection and the frame. By touchdown it
+       has taken the whole screen. */
+    const grow = smoothstep((9 - a) / (9 - 1.2));
+    if (Math.abs(grow - lastGrow.current) > 0.002) {
+      lastGrow.current = grow;
+      const el = stage.current;
+      if (el) {
+        el.style.setProperty("--ix", `${(FRAME_X * (1 - grow)).toFixed(3)}%`);
+        el.style.setProperty("--iy", `${(FRAME_Y * (1 - grow)).toFixed(3)}%`);
+      }
+    }
+
+    /* Readouts, brackets and the skip chip all fade out through the flare, so
+       touchdown arrives on a bare screen. --intro-hud lives on <html> because
+       the skip control is owned by <IntroStage>, not by this stage. */
+    const hud = 1 - smoothstep((2.4 - a) / (2.4 - 0.9));
+    if (Math.abs(hud - lastHud.current) > 0.004) {
+      lastHud.current = hud;
+      document.documentElement.style.setProperty("--intro-hud", hud.toFixed(3));
+    }
+
+    /* Then the feed itself dissolves into the deck colour. */
+    const feed = 1 - smoothstep((0.5 - a) / (0.5 - 0.05));
+    if (Math.abs(feed - lastFeed.current) > 0.004) {
+      lastFeed.current = feed;
+      if (canvas.current) canvas.current.style.opacity = feed.toFixed(3);
+    }
+
     if (Math.abs(a - lastDrawn.current) < 0.004) return;
     lastDrawn.current = a;
 
