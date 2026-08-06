@@ -53,6 +53,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${chakra.variable} ${plexMono.variable} h-full antialiased`}
+      /* The arrival gate below runs before hydration and sets data-intro plus a
+         scroll-lock class on this element. Without this, React treats those as a
+         hydration mismatch, re-renders the root and strips them back off. */
+      suppressHydrationWarning
     >
       <head>
         {/* Arrival gate. Runs before first paint so the deck is never briefly

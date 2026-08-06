@@ -8,7 +8,7 @@
  */
 
 import { act, createElement } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { introDuration } from "@/lib/intro-profile";
 
@@ -39,6 +39,26 @@ async function mount(): Promise<void> {
   await act(async () => {
     root = createRoot(container);
     root.render(
+      createElement(FlightComputer, null, createElement(IntroStage)),
+    );
+  });
+}
+
+/**
+ * Mount the way a real visitor does. IntroStage renders nothing on the server,
+ * so the container starts empty and hydration matches — but
+ * useSyncExternalStore reports the *server* snapshot during that first pass,
+ * which is the condition that once left the sequence stuck on its last card.
+ */
+async function hydrate(): Promise<void> {
+  vi.resetModules();
+  const { FlightComputer } = await import("@/lib/flight-computer");
+  const { IntroStage } = await import("@/components/gcs/intro-stage");
+
+  container.innerHTML = "";
+  await act(async () => {
+    root = hydrateRoot(
+      container,
       createElement(FlightComputer, null, createElement(IntroStage)),
     );
   });
@@ -172,5 +192,40 @@ describe("arrival sequence", () => {
     /* and it stays out of the way */
     await advance(introDuration(POST_LINES) + RELEASE_MS);
     expect(container.innerHTML).toBe("");
+  });
+
+  it("still reaches the reveal when hydrated, not just client-rendered", async () => {
+    arm();
+    await hydrate();
+
+    /* it actually played: the overlay came up */
+    expect(container.querySelector("button")).not.toBeNull();
+
+    await advance(introDuration(POST_LINES) + 200);
+    expect(document.documentElement.dataset.intro).toBe("release");
+    expect(document.documentElement.classList.contains("gcs-locked")).toBe(false);
+
+    await advance(RELEASE_MS);
+    expect(document.documentElement.hasAttribute("data-intro")).toBe(false);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("hands the site over even if the sequence never finishes", async () => {
+    arm();
+    await hydrate();
+
+    /* the watchdog is the backstop for anything that stalls the timeline */
+    await advance(13000);
+    expect(document.documentElement.hasAttribute("data-intro")).toBe(false);
+    expect(document.documentElement.classList.contains("gcs-locked")).toBe(false);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("does not arm on hydration when the gate is absent", async () => {
+    await hydrate();
+
+    await advance(introDuration(POST_LINES) + RELEASE_MS);
+    expect(container.innerHTML).toBe("");
+    expect(document.documentElement.hasAttribute("data-intro")).toBe(false);
   });
 });

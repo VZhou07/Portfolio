@@ -15,17 +15,26 @@ import { LandingIntro } from "./landing-intro";
 const SESSION_KEY = "gcs.booted";
 /** How long the deck's punch-in animation needs before the gate can be dropped. */
 const RELEASE_MS = 1100;
+/**
+ * Hard deadline. The sequence should reach the reveal in ~7.5 s; if anything
+ * stops it getting there, hand the site over anyway rather than trapping the
+ * visitor behind an overlay. Mirrors the failsafe in the inline gate.
+ */
+const WATCHDOG_MS = 12000;
 
 type Stage = "post" | "flight" | "bang" | "over";
 
 /* Whether the cold-open is armed is a fact about the document, decided before
-   hydration. Read it through useSyncExternalStore and cache it, so the value is
-   stable for the life of the page and never fights the render. */
+   hydration by the inline gate. Read it straight from the DOM and cache it: the
+   value must not depend on which render pass is asking, because
+   useSyncExternalStore reports the server snapshot during hydration. */
 let armedOnce: boolean | null = null;
 const NEVER = () => () => {};
 const readArmed = () => {
   if (armedOnce === null) {
-    armedOnce = document.documentElement.dataset.intro === "armed";
+    armedOnce =
+      typeof document !== "undefined" &&
+      document.documentElement.dataset.intro === "armed";
   }
   return armedOnce;
 };
@@ -72,15 +81,25 @@ export function IntroStage() {
     }, RELEASE_MS);
   }, [markBooted]);
 
-  /* Nothing to play: hand the chrome over at once. */
+  /* Nothing to play: hand the chrome over at once. This asks the DOM rather
+     than the render pass — during hydration useSyncExternalStore reports the
+     server snapshot, and trusting it here would mark the sequence released
+     before it had run, leaving the last card on screen forever. */
   useEffect(() => {
-    if (armed) {
+    if (readArmed()) {
       window.scrollTo({ top: 0, behavior: "instant" });
       return;
     }
     released.current = true;
     markBooted();
-  }, [armed, markBooted]);
+  }, [markBooted]);
+
+  /* Failsafe: never leave a visitor stuck behind the overlay. */
+  useEffect(() => {
+    if (!armed) return;
+    const guard = window.setTimeout(release, WATCHDOG_MS);
+    return () => window.clearTimeout(guard);
+  }, [armed, release]);
 
   /* Any interaction skips the rest of the sequence. */
   useEffect(() => {
