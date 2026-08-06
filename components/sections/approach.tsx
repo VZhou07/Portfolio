@@ -7,19 +7,28 @@ import { useOnScreen } from "@/components/gcs/reveal";
 import { FOOTAGE, MISSIONS, SECTIONS } from "@/lib/content";
 import { clamp } from "@/lib/derive";
 import { useFlight, useTelemetry, useTelemetryThrottled } from "@/lib/flight-computer";
+import { DESCENT_MS } from "@/lib/intro-profile";
 import {
-  approachOffset,
   drawSim,
   drawTrace,
+  fitCanvas,
   tagConfidence,
   tagPixels,
+  windOffset,
   type SimMode,
+  type Surface,
 } from "@/lib/sim-render";
 
 const DEF = SECTIONS[3];
 const CEILING = 12; /* metres AGL at the start of the approach */
 const FADE_START = 1.9; /* handover begins */
 const FADE_END = 0.25; /* real footage fully up */
+/** Crosswind the injector can dial in, m/s. */
+const WIND_MAX = 6;
+/** Lateral error the ALIGNED gate accepts, metres. */
+const ALIGN_GATE = 0.2;
+/** Most recent detector events kept on screen. */
+const LOG_DEPTH = 6;
 
 type Phase = "TRANSIT" | "APPROACH" | "FLARE" | "TOUCHDOWN";
 type Downlink = "PROBING" | "READY" | "MISSING";
@@ -50,42 +59,13 @@ function handover(alt: number): number {
   return t * t * (3 - 2 * t);
 }
 
-interface Surface {
-  ctx: CanvasRenderingContext2D;
-  w: number;
-  h: number;
-}
-
 /**
- * Sizes a canvas to its CSS box and caches the result. Called on mount, resize
- * and when the bay scrolls into view — never inside the frame loop, so drawing
- * costs no layout.
- */
-function measureCanvas(canvas: HTMLCanvasElement | null): Surface | null {
-  if (!canvas) return null;
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  if (!w || !h) return null;
-
-  const dpr = Math.min(1.5, window.devicePixelRatio || 1);
-  const pw = Math.round(w * dpr);
-  const ph = Math.round(h * dpr);
-  if (canvas.width !== pw || canvas.height !== ph) {
-    canvas.width = pw;
-    canvas.height = ph;
-  }
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return { ctx, w, h };
-}
-
-/**
- * APPROACH & TOUCHDOWN
- * The sim bay is driven by one altitude value. Scroll flies it by default; the
- * lever and AUTO LAND take manual control. As altitude passes ~1.9 m the
- * simulated payload feed hands over to the real onboard clip, so the descent you
- * scrubbed ends in the landing that actually happened.
+ * APPROACH & TOUCHDOWN — the replay
+ * The arrival sequence flew this profile once, clean, on rails. Here you get
+ * what it did not have: the lever, a crosswind you can inject, an occluder you
+ * can put across the lens, and the detector's event log reacting to both. The
+ * bay is still driven by one altitude value, and as it passes ~1.9 m the
+ * simulated payload feed hands over to the real onboard clip.
  */
 export function Approach() {
   const { reducedMotion } = useFlight();
@@ -108,6 +88,7 @@ export function Approach() {
   const tcText = useRef<HTMLSpanElement>(null);
   const tapeFill = useRef<HTMLDivElement>(null);
   const checkRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const logList = useRef<HTMLUListElement>(null);
 
   /* flight state kept out of React: it changes every frame */
   const alt = useRef(CEILING);
@@ -116,6 +97,12 @@ export function Approach() {
   const nextSample = useRef(0);
   const auto = useRef<"OFF" | "LAND" | "ABORT">("OFF");
   const glitched = useRef(false);
+  /** Frames drawn — the detector log stamps events with it. */
+  const frameNo = useRef(0);
+  /* last known gate states, so the log only records real transitions */
+  const wasAcquired = useRef(false);
+  const wasAligned = useRef(false);
+  const wasDown = useRef(false);
   /* cached drawing surfaces, refreshed on resize / visibility, not per frame */
   const surfaces = useRef<{
     big: Surface | null;
@@ -129,8 +116,49 @@ export function Approach() {
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [crop, setCrop] = useState(false);
+  /** Injected crosswind in m/s. Positive is from the left. */
+  const [wind, setWind] = useState(0);
+  /** Something across the lens: the detector loses the tag, optical flow does not. */
+  const [occluded, setOccluded] = useState(false);
 
   const mission = MISSIONS.find((m) => m.id === FOOTAGE.missionId);
+
+  /**
+   * Append a detector event. Written straight to the DOM rather than held in
+   * state: these fire from the frame loop, and a re-render per event would
+   * defeat the point of the loop.
+   */
+  const emit = useCallback(
+    (code: string, text: string, tone: "ok" | "warn" | "info") => {
+      const ul = logList.current;
+      if (!ul) return;
+
+      const li = document.createElement("li");
+      li.className = "gcs-boot-line flex items-baseline gap-2 sm:gap-3";
+
+      const stamp = document.createElement("span");
+      stamp.className = "text-dim tnum shrink-0";
+      stamp.textContent = `F${frameNo.current.toString().padStart(5, "0")}`;
+
+      const tag = document.createElement("span");
+      tag.className =
+        tone === "ok"
+          ? "text-nominal shrink-0"
+          : tone === "warn"
+            ? "text-fault shrink-0"
+            : "text-data shrink-0";
+      tag.textContent = code;
+
+      const body = document.createElement("span");
+      body.className = "text-mid";
+      body.textContent = text;
+
+      li.append(stamp, tag, body);
+      ul.prepend(li);
+      while (ul.childElementCount > LOG_DEPTH) ul.lastElementChild?.remove();
+    },
+    [],
+  );
 
   /* ── the descent + every viewport, from one frame callback ─────────────── */
   useTelemetry((t) => {
@@ -197,13 +225,33 @@ export function Approach() {
     /* 6. redraw the viewports only when the altitude actually moved */
     if (Math.abs(a - lastDrawn.current) < 0.008) return;
     lastDrawn.current = a;
+    frameNo.current += 1;
 
+    const off = windOffset(a, wind);
     const big = surfaces.current.big;
-    if (big) drawSim(big.ctx, { mode: "rgb", alt: a, w: big.w, h: big.h });
+    if (big) {
+      drawSim(big.ctx, {
+        mode: "rgb",
+        alt: a,
+        w: big.w,
+        h: big.h,
+        offset: off,
+        occluded,
+      });
+    }
 
     for (let i = 0; i < TILES.length; i += 1) {
       const c = surfaces.current.tiles[i];
-      if (c) drawSim(c.ctx, { mode: TILES[i].mode, alt: a, w: c.w, h: c.h });
+      if (c) {
+        drawSim(c.ctx, {
+          mode: TILES[i].mode,
+          alt: a,
+          w: c.w,
+          h: c.h,
+          offset: off,
+          occluded,
+        });
+      }
     }
   });
 
@@ -212,8 +260,8 @@ export function Approach() {
     const a = alt.current;
     const focal = (surfaces.current.big?.w ?? 640) * 0.85;
     const px = tagPixels(a, focal);
-    const conf = tagConfidence(a, px);
-    const off = approachOffset(a);
+    const conf = occluded ? 0 : tagConfidence(a, px);
+    const off = windOffset(a, wind);
     const err = Math.hypot(off.x, off.y);
 
     if (altText.current) altText.current.textContent = a.toFixed(2);
@@ -237,7 +285,7 @@ export function Approach() {
     /* checklist gates are real conditions, not a timeline */
     const state: Record<string, boolean> = {
       acq: conf > 0,
-      algn: err < 0.2,
+      algn: err < ALIGN_GATE,
       flare: a <= 2,
       down: a <= 0.3,
     };
@@ -245,15 +293,43 @@ export function Approach() {
       const el = checkRefs.current[c.id];
       if (el) el.dataset.ok = state[c.id] ? "true" : "false";
     }
+
+    /* detector events, logged only when a gate actually changes */
+    if (state.acq !== wasAcquired.current) {
+      wasAcquired.current = state.acq;
+      if (state.acq) {
+        emit("ACQ", `TAG 0 ACQUIRED · CONF ${conf.toFixed(2)}`, "ok");
+      } else {
+        emit("LOST", "TARGET LOST · SEARCHING", "warn");
+      }
+    }
+    if (state.algn !== wasAligned.current) {
+      wasAligned.current = state.algn;
+      if (state.algn) {
+        emit("LOCK", `LATERAL LOCK · ERR ${err.toFixed(2)} m`, "ok");
+      } else {
+        emit("DRIFT", `OUTSIDE GATE · ERR ${err.toFixed(2)} m`, "warn");
+      }
+    }
+    if (state.down !== wasDown.current) {
+      wasDown.current = state.down;
+      if (state.down) {
+        emit(
+          "DOWN",
+          `TOUCHDOWN · ERR ${err.toFixed(2)} m${wind ? ` · WIND ${wind.toFixed(1)}` : ""}`,
+          "ok",
+        );
+      }
+    }
   }, 10);
 
   /* ── size the canvases once per layout change, then forget about it ────── */
   useEffect(() => {
     const remeasure = () => {
       surfaces.current = {
-        big: measureCanvas(main.current),
-        tiles: TILES.map((_, i) => measureCanvas(tiles.current[i])),
-        trace: measureCanvas(trace.current),
+        big: fitCanvas(main.current),
+        tiles: TILES.map((_, i) => fitCanvas(tiles.current[i])),
+        trace: fitCanvas(trace.current),
       };
       /* force the next frame to redraw into the fresh surfaces */
       lastDrawn.current = -1;
@@ -317,6 +393,35 @@ export function Approach() {
     setManual(false);
   }, []);
 
+  const onWind = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = Number(e.target.value) / 10;
+      setWind(v);
+      /* force a redraw: the scene changed without the altitude changing */
+      lastDrawn.current = -1;
+      emit(
+        "WIND",
+        v === 0
+          ? "CROSSWIND REMOVED"
+          : `CROSSWIND ${v > 0 ? "+" : ""}${v.toFixed(1)} m/s INJECTED`,
+        "info",
+      );
+    },
+    [emit],
+  );
+
+  const toggleOcclude = useCallback(() => {
+    setOccluded((o) => {
+      lastDrawn.current = -1;
+      emit(
+        "OCC",
+        o ? "OCCLUDER WITHDRAWN" : "OCCLUDER ACROSS LENS",
+        o ? "info" : "warn",
+      );
+      return !o;
+    });
+  }, [emit]);
+
   const toggleVideo = useCallback(() => {
     const v = video.current;
     if (!v) return;
@@ -334,7 +439,7 @@ export function Approach() {
   return (
     <Section
       def={DEF}
-      subtitle="SIM TO REAL — THE DESCENT HANDS OVER TO ONBOARD FOOTAGE"
+      subtitle="THE ARRIVAL FLEW THIS CLEAN — NOW BREAK IT"
       aside={
         <span className="text-micro text-dim">
           {manual ? "MANUAL CONTROL" : "SCROLL IS FLYING"}
@@ -449,6 +554,63 @@ export function Approach() {
                   RETURN TO SCROLL
                 </button>
               )}
+            </div>
+
+            {/* fault injection — the part the arrival sequence never showed */}
+            <div className="border-rule mt-5 border-t pt-4">
+              <div className="mb-3 flex items-baseline justify-between">
+                <MicroLabel>FAULT INJECTION</MicroLabel>
+                <span
+                  className={`text-micro ${
+                    wind || occluded ? "text-caution" : "text-dim"
+                  }`}
+                >
+                  {wind || occluded ? "DEGRADED" : "CLEAN AIR"}
+                </span>
+              </div>
+
+              <label htmlFor="wind" className="text-micro text-dim mb-2 block">
+                CROSSWIND ·{" "}
+                <span className="text-data tnum">
+                  {wind > 0 ? "+" : ""}
+                  {wind.toFixed(1)} m/s
+                </span>
+              </label>
+              <input
+                id="wind"
+                type="range"
+                min={-WIND_MAX * 10}
+                max={WIND_MAX * 10}
+                step={5}
+                value={wind * 10}
+                onChange={onWind}
+                aria-label="Injected crosswind in tenths of a metre per second"
+                className="gcs-lever"
+              />
+              <div className="text-micro text-dim mt-1 flex justify-between">
+                <span>-{WIND_MAX}</span>
+                <span>CALM</span>
+                <span>+{WIND_MAX}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={toggleOcclude}
+                aria-pressed={occluded}
+                className={`text-micro mt-3 w-full border px-3 py-2 font-semibold transition-colors ${
+                  occluded
+                    ? "border-fault bg-fault text-void"
+                    : "border-rule text-mid hover:border-fault hover:text-fault"
+                }`}
+              >
+                {occluded ? "WITHDRAW OCCLUDER" : "OCCLUDE THE LENS"}
+              </button>
+
+              <p className="text-micro text-dim mt-2 leading-relaxed">
+                WIND LEAVES A REAL TOUCHDOWN ERROR · PAST{" "}
+                <span className="text-caution tnum">4 m/s</span> THE ALIGNED GATE
+                FAILS. THE OCCLUDER DROPS THE TAG BUT NOT THE OPTICAL FLOW.
+              </p>
             </div>
 
             {/* gates, evaluated from the live numbers above */}
@@ -699,8 +861,38 @@ export function Approach() {
             <span className="text-data">pixels = metres · f / altitude</span> and{" "}
             <span className="text-data">depth = h · √(1 + (r/f)²)</span>. The
             lateral error converges as you descend because that is what the
-            landing controller does.
+            landing controller does — inject a crosswind and watch how much of it
+            the controller gets back before the gear touches.
           </p>
+        </div>
+
+        {/* ── detector event log ──────────────────────────────────────────── */}
+        <div className="lg:col-span-12">
+          <Frame
+            code="DET"
+            title="DETECTOR EVENT LOG"
+            tone="data"
+            aside={
+              <span className="text-micro text-dim tnum">
+                LAST {LOG_DEPTH} EVENTS · ARRIVAL FLEW IT IN{" "}
+                {(DESCENT_MS / 1000).toFixed(1)} s
+              </span>
+            }
+          >
+            <ul ref={logList} className="text-micro space-y-1.5">
+              <li className="flex items-baseline gap-2 sm:gap-3">
+                <span className="text-dim tnum shrink-0">F00000</span>
+                <span className="text-data shrink-0">IDLE</span>
+                <span className="text-mid">
+                  DETECTOR ARMED · WAITING FOR THE DESCENT
+                </span>
+              </li>
+            </ul>
+            <p className="text-micro text-dim mt-3 leading-relaxed">
+              EVERY LINE IS A GATE THAT ACTUALLY CHANGED — ACQUISITION, LATERAL
+              LOCK, LOSS OF TARGET, TOUCHDOWN. NOTHING HERE IS ON A TIMER.
+            </p>
+          </Frame>
         </div>
       </div>
     </Section>

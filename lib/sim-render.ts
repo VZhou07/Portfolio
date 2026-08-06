@@ -77,6 +77,20 @@ export function approachOffset(alt: number): { x: number; y: number } {
   };
 }
 
+/**
+ * The same approach with a crosswind injected. The controller trims most of it
+ * out, but not for free: the residual scales with altitude and leaves a real
+ * touchdown error, which is why the ALIGNED gate fails past about 4 m/s.
+ */
+export function windOffset(
+  alt: number,
+  wind: number,
+): { x: number; y: number } {
+  const base = approachOffset(alt);
+  const k = 0.045 + 0.16 * clamp01(alt / 12);
+  return { x: base.x + wind * k, y: base.y + wind * 0.022 };
+}
+
 /** Detection confidence rises as the tag grows in the frame. */
 export function tagConfidence(alt: number, tagPx: number): number {
   if (tagPx < 10) return 0;
@@ -95,6 +109,10 @@ export interface SimFrame {
   /** Canvas size in CSS pixels. */
   w: number;
   h: number;
+  /** Lateral error override — defaults to the nominal approach. */
+  offset?: { x: number; y: number };
+  /** Something is across the lens: the detector loses the tag, flow does not. */
+  occluded?: boolean;
 }
 
 /** A canvas sized to its CSS box, with a context ready to draw in CSS pixels. */
@@ -136,7 +154,8 @@ export function drawSim(ctx: CanvasRenderingContext2D, frame: SimFrame): void {
   const alt = Math.max(0.12, frame.alt);
   /* ~62° horizontal field of view */
   const focal = w * 0.85;
-  const off = approachOffset(alt);
+  const off = frame.offset ?? approachOffset(alt);
+  const occluded = frame.occluded === true;
   const cx = w / 2;
   const cy = h / 2;
   const scale = focal / alt;
@@ -151,14 +170,14 @@ export function drawSim(ctx: CanvasRenderingContext2D, frame: SimFrame): void {
     return;
   }
   if (mode === "mask") {
-    drawMask(ctx, w, h, alt, focal, px, py);
+    drawMask(ctx, w, h, alt, focal, px, py, occluded);
     return;
   }
   if (mode === "features") {
     drawFeatures(ctx, w, h, alt, focal, off);
     return;
   }
-  drawRgb(ctx, w, h, alt, focal, px, py);
+  drawRgb(ctx, w, h, alt, focal, px, py, occluded);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -173,6 +192,7 @@ function drawRgb(
   focal: number,
   px: (x: number) => number,
   py: (y: number) => number,
+  occluded: boolean,
 ): void {
   /* ground */
   const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -225,6 +245,20 @@ function drawRgb(
   }
   ctx.restore();
 
+  /* an occluder across the lens — a gear leg, a shadow, a hand over the camera */
+  if (occluded) {
+    const bar = Math.max(46, tagPx * 1.35);
+    ctx.save();
+    ctx.translate(px(0), py(0));
+    ctx.rotate(0.42);
+    ctx.fillStyle = "rgba(4,7,10,0.94)";
+    ctx.fillRect(-bar * 0.5, -bar * 0.08, bar, bar * 0.55);
+    ctx.strokeStyle = "rgba(30,48,55,0.9)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-bar * 0.5, -bar * 0.08, bar, bar * 0.55);
+    ctx.restore();
+  }
+
   /* fixed-pattern noise */
   for (const n of FPN) {
     ctx.fillStyle = `rgba(230,245,250,${0.015 + n.v * 0.03})`;
@@ -232,7 +266,7 @@ function drawRgb(
   }
 
   /* detection overlay */
-  const conf = tagConfidence(alt, tagPx);
+  const conf = occluded ? 0 : tagConfidence(alt, tagPx);
   const boxHalf = Math.max(6, (tagPx / 2) * 1.25);
   const tx = px(0);
   const ty = py(0);
@@ -333,15 +367,28 @@ function drawMask(
   focal: number,
   px: (x: number) => number,
   py: (y: number) => number,
+  occluded: boolean,
 ): void {
   ctx.fillStyle = "#05080a";
   ctx.fillRect(0, 0, w, h);
 
   const padPx = PAD_SIZE * (focal / alt);
-  const conf = tagConfidence(alt, tagPixels(alt, focal));
+  const conf = occluded ? 0 : tagConfidence(alt, tagPixels(alt, focal));
 
   ctx.fillStyle = "#e8f4f7";
   ctx.fillRect(px(0) - padPx / 2, py(0) - padPx / 2, padPx, padPx);
+
+  /* the occluder cuts a hole in the segmentation, which is why the detector
+     drops the target even though the pad is still partly visible */
+  if (occluded) {
+    ctx.fillStyle = "#05080a";
+    ctx.save();
+    ctx.translate(px(0), py(0));
+    ctx.rotate(0.42);
+    const bar = Math.max(46, padPx * 0.95);
+    ctx.fillRect(-bar * 0.5, -bar * 0.08, bar, bar * 0.55);
+    ctx.restore();
+  }
 
   /* false positives that the detector rejects as the target grows */
   const blobs = Math.round((1 - conf) * 16);
