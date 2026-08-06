@@ -1,15 +1,7 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MISSIONS, PROFILE, SKILL_GROUPS, WAYPOINTS } from "@/lib/content";
-import { useFlight } from "@/lib/flight-computer";
 
 interface BootLine {
   tag: string;
@@ -24,12 +16,9 @@ interface Revealed extends BootLine {
 }
 
 const CHANNELS = SKILL_GROUPS.reduce((n, g) => n + g.skills.length, 0);
-const STEP_MS = 105;
-
-/* Hydration-safe "am I on the client" without setState in an effect. */
-const NEVER = () => () => {};
-const onClient = () => true;
-const onServer = () => false;
+const STEP_MS = 95;
+const HOLD_MS = 320;
+const FADE_MS = 240;
 
 /* Every value below is read off the actual device. */
 function probe(): BootLine[] {
@@ -71,102 +60,55 @@ function probe(): BootLine[] {
   ];
 }
 
-function shouldSkip(): boolean {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
-  try {
-    return sessionStorage.getItem("gcs.booted") === "1";
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Power-on self test. Hidden from assistive tech (it is chrome, not content) and
- * dismissed by any key, click, tap or scroll. Skipped entirely for
- * reduced-motion users and on repeat visits in the same session.
+ * Power-on self test — stage one of the arrival sequence. Hidden from assistive
+ * tech (it is chrome, not content). Whether it runs at all is decided by
+ * <IntroStage>, which also owns the single skip handler.
  */
-export function BootSequence() {
-  const { markBooted } = useFlight();
-  const mounted = useSyncExternalStore(NEVER, onClient, onServer);
-
-  const plan = useMemo<BootLine[] | null>(() => {
-    if (!mounted || shouldSkip()) return null;
-    return probe();
-  }, [mounted]);
-
+export function BootSequence({ onDone }: { onDone: () => void }) {
+  const plan = useMemo(() => probe(), []);
   const [revealed, setRevealed] = useState<Revealed[]>([]);
   const [closing, setClosing] = useState(false);
-  const started = useRef(0);
-  const done = useRef(false);
 
-  const finish = useCallback(() => {
-    if (done.current) return;
-    done.current = true;
-    try {
-      sessionStorage.setItem("gcs.booted", "1");
-    } catch {
-      /* private mode: the sequence simply replays next visit */
-    }
-    setClosing(true);
-    window.setTimeout(markBooted, 360);
-  }, [markBooted]);
-
-  /* Nothing to play (reduced motion / repeat visit): hand control over at once. */
+  /* Keep the latest callback without restarting the sequence. */
+  const done = useRef(onDone);
   useEffect(() => {
-    if (mounted && plan === null && !done.current) {
-      done.current = true;
-      markBooted();
-    }
-  }, [mounted, plan, markBooted]);
+    done.current = onDone;
+  }, [onDone]);
 
-  /* Reveal one line per tick, stamping the true elapsed time of each. */
+  /* One self-driving timer chain: reveal a line per tick, stamping the true
+     elapsed time of each, then hold and hand over. */
   useEffect(() => {
-    if (!plan || done.current) return;
+    const started = performance.now();
+    let i = 0;
+    let timer = 0;
 
-    if (revealed.length >= plan.length) {
-      const hold = window.setTimeout(finish, 420);
-      return () => window.clearTimeout(hold);
-    }
-
-    if (started.current === 0) started.current = performance.now();
-
-    const step = window.setTimeout(() => {
-      const at = (performance.now() - started.current) / 1000;
-      setRevealed((prev) =>
-        prev.length >= plan.length ? prev : [...prev, { ...plan[prev.length], at }],
-      );
-    }, STEP_MS);
-
-    return () => window.clearTimeout(step);
-  }, [plan, revealed.length, finish]);
-
-  /* Any interaction skips ahead. */
-  useEffect(() => {
-    if (!plan) return;
-    const skip = () => finish();
-    const opts = { once: true, passive: true } as const;
-    window.addEventListener("keydown", skip, { once: true });
-    window.addEventListener("pointerdown", skip, opts);
-    window.addEventListener("wheel", skip, opts);
-    window.addEventListener("touchstart", skip, opts);
-    return () => {
-      window.removeEventListener("keydown", skip);
-      window.removeEventListener("pointerdown", skip);
-      window.removeEventListener("wheel", skip);
-      window.removeEventListener("touchstart", skip);
+    const step = () => {
+      if (i < plan.length) {
+        const at = (performance.now() - started) / 1000;
+        const line = plan[i];
+        i += 1;
+        setRevealed((prev) => [...prev, { ...line, at }]);
+        timer = window.setTimeout(step, STEP_MS);
+        return;
+      }
+      timer = window.setTimeout(() => {
+        setClosing(true);
+        timer = window.setTimeout(() => done.current(), FADE_MS);
+      }, HOLD_MS);
     };
-  }, [plan, finish]);
 
-  if (!plan) return null;
+    timer = window.setTimeout(step, STEP_MS);
+    return () => window.clearTimeout(timer);
+  }, [plan]);
 
   const complete = revealed.length >= plan.length;
 
   return (
     <div
       aria-hidden="true"
-      onClick={finish}
-      className={`bg-void fixed inset-0 z-90 flex items-center justify-center px-5 transition-opacity duration-300 ${
-        closing ? "pointer-events-none opacity-0" : "opacity-100"
+      className={`bg-void absolute inset-0 flex items-center justify-center px-5 transition-opacity duration-200 ${
+        closing ? "opacity-0" : "opacity-100"
       }`}
     >
       <div className="gcs-grid pointer-events-none absolute inset-0 opacity-40" />
@@ -206,7 +148,6 @@ export function BootSequence() {
             {complete ? "READY" : `SELF TEST ${revealed.length}/${plan.length}`}
             <span className="gcs-caret text-signal">_</span>
           </span>
-          <span className="text-dim">PRESS ANY KEY TO SKIP</span>
         </div>
 
         <div className="bg-rule mt-3 h-px w-full">

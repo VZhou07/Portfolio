@@ -284,6 +284,30 @@
 }
 
 /* ============================================================================
+   ARRIVAL SEQUENCE
+   ----------------------------------------------------------------------------
+   Everything here is gated on html[data-intro], which is only ever set by the
+   pre-paint gate in app/layout.tsx. No attribute — no-JS, reduced motion, deep
+   link, repeat visit — means the deck renders exactly as it always has.
+   ========================================================================== */
+
+/* scroll is held while the aircraft is flying itself */
+html.gcs-locked,
+html.gcs-locked body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+/* the deck waits behind the cold-open. visibility (not display) keeps layout
+   measurable, so the flight computer's geometry cache is correct on release,
+   and keeps the held-back content out of the tab order. */
+html[data-intro="armed"] .gcs-deck {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* ============================================================================
    FORM CONTROLS — themed natively so we keep real keyboard/touch semantics
    ========================================================================== */
 

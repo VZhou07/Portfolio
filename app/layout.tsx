@@ -55,6 +55,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${chakra.variable} ${plexMono.variable} h-full antialiased`}
     >
       <head>
+        {/* Arrival gate. Runs before first paint so the deck is never briefly
+            visible behind the intro. Decides once, here, whether the cold-open
+            plays at all — reduced motion, deep links and repeat visits skip it.
+            The timeout is a failsafe: if the app never hydrates, scrolling is
+            handed back rather than locked forever. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{
+var d=document.documentElement;
+if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+if(location.hash.length>1)return;
+try{if(sessionStorage.getItem('gcs.booted')==='1')return}catch(e){}
+d.dataset.intro='armed';d.classList.add('gcs-locked');
+setTimeout(function(){if(d.dataset.intro==='armed'){d.removeAttribute('data-intro');d.classList.remove('gcs-locked')}},12000);
+}catch(e){}})()`,
+          }}
+        />
         {/* Without JS the observers never fire, so unhide everything that is
             normally revealed on scroll. Nav, meters and flight logs included. */}
         <noscript>
