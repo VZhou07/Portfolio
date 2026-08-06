@@ -14,8 +14,9 @@ interface Centre {
 }
 
 /**
- * Waypoint nav. One element, two layouts: a vertical rail on large screens and
- * a thumb-reachable bottom bar on touch. The drone is the active-section
+ * Waypoint nav. One element, two layouts: a vertical rail on large screens
+ * (starting below the telemetry strip, which owns the full width) and a
+ * thumb-reachable bottom bar on touch. The drone is the active-section
  * indicator — its position is interpolated from real scroll progress between
  * waypoints, so it flies continuously as you scroll and lands on the waypoint
  * you jump to. Everything is a real anchor, so it works without JS and with a
@@ -181,7 +182,7 @@ export function NavRail() {
   return (
     <nav
       aria-label="Mission waypoints"
-      className={`gcs-chrome-gate bg-void/95 border-rule fixed z-40 border-t backdrop-blur-sm transition-opacity duration-500 lg:inset-x-auto lg:inset-y-0 lg:left-0 lg:h-auto lg:w-18 lg:border-t-0 lg:border-r ${
+      className={`gcs-chrome-gate bg-void/95 border-rule fixed z-40 border-t backdrop-blur-sm transition-opacity duration-500 lg:inset-x-auto lg:top-11 lg:left-0 lg:h-auto lg:w-18 lg:border-t-0 lg:border-r ${
         booted ? "opacity-100" : "opacity-0"
       } inset-x-0 bottom-0`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
