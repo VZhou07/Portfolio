@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MISSIONS, PROFILE, SKILL_GROUPS, WAYPOINTS } from "@/lib/content";
+import {
+  POST_FADE_MS,
+  POST_HOLD_MS,
+  POST_STEP_MS,
+} from "@/lib/intro-profile";
 
 interface BootLine {
   tag: string;
@@ -16,9 +21,6 @@ interface Revealed extends BootLine {
 }
 
 const CHANNELS = SKILL_GROUPS.reduce((n, g) => n + g.skills.length, 0);
-const STEP_MS = 95;
-const HOLD_MS = 320;
-const FADE_MS = 240;
 
 /* Every value below is read off the actual device. */
 function probe(): BootLine[] {
@@ -89,16 +91,16 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
         const line = plan[i];
         i += 1;
         setRevealed((prev) => [...prev, { ...line, at }]);
-        timer = window.setTimeout(step, STEP_MS);
+        timer = window.setTimeout(step, POST_STEP_MS);
         return;
       }
       timer = window.setTimeout(() => {
         setClosing(true);
-        timer = window.setTimeout(() => done.current(), FADE_MS);
-      }, HOLD_MS);
+        timer = window.setTimeout(() => done.current(), POST_FADE_MS);
+      }, POST_HOLD_MS);
     };
 
-    timer = window.setTimeout(step, STEP_MS);
+    timer = window.setTimeout(step, POST_STEP_MS);
     return () => window.clearTimeout(timer);
   }, [plan]);
 

@@ -1,9 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { FOOTAGE, MISSIONS } from "@/lib/content";
-import { clamp } from "@/lib/derive";
 import { useTelemetry, useTelemetryThrottled } from "@/lib/flight-computer";
+import {
+  altitudeAt,
+  BLANK_MS,
+  BRIEF_MS,
+  CAM_FLOOR,
+  CEILING,
+  COMPLETE_MS,
+  DESCENT_MS,
+  feedFade,
+  FRAME_X,
+  FRAME_Y,
+  frameGrow,
+  hudFade,
+  phaseOf,
+} from "@/lib/intro-profile";
 import {
   approachOffset,
   drawSim,
@@ -13,45 +33,9 @@ import {
   type Surface,
 } from "@/lib/sim-render";
 
-/* ── flight profile ──────────────────────────────────────────────────────── */
-
-/** Metres AGL the approach starts from — the same ceiling section 04 uses. */
-const CEILING = 12;
-/**
- * Height of the payload camera above the pad at touchdown. The lens cannot get
- * closer than the landing gear allows, so the projection stops closing here
- * instead of diving inside a single tag cell. Real pipelines lose the tag at
- * about this point for exactly this reason.
- */
-const CAM_FLOOR = 0.45;
-
-/* ── pacing (ms) — the whole cold-open is budgeted at 7.5 s with the POST ── */
-const BRIEF_MS = 1150;
-const DESCENT_MS = 3300;
-const BLANK_MS = 400;
-const COMPLETE_MS = 1250;
-
-/** The window the feed opens in before it grows to fill the screen. */
-const FRAME_X = 11; /* % inset left/right */
-const FRAME_Y = 23; /* % inset top/bottom */
-
 type Phase = "brief" | "descent" | "blank" | "complete";
 
 const MISSION = MISSIONS.find((m) => m.id === FOOTAGE.missionId);
-
-/** Same gates section 04 uses, so the phase names mean the same thing. */
-function phaseOf(alt: number): string {
-  if (alt > 6) return "TRANSIT";
-  if (alt > 2) return "APPROACH";
-  if (alt > 0.3) return "FLARE";
-  return "TOUCHDOWN";
-}
-
-/** 0..1 with eased ends — used for every ramp below. */
-function smoothstep(x: number): number {
-  const t = clamp(x, 0, 1);
-  return t * t * (3 - 2 * t);
-}
 
 /**
  * ARRIVAL — STAGE TWO
@@ -59,7 +43,7 @@ function smoothstep(x: number): number {
  * The precision landing, flown by the autopilot. Nothing here is coupled to
  * scroll: altitude is a function of time, and every readout is computed from it
  * with the same functions section 04 uses, so the numbers are real even though
- * the descent is on rails.
+ * the descent is on rails. Timing and ramps live in lib/intro-profile.ts.
  */
 export function LandingIntro({ onDone }: { onDone: () => void }) {
   const done = useRef(onDone);
@@ -87,6 +71,38 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   const lastHud = useRef(-1);
   const lastFeed = useRef(-1);
 
+  /**
+   * Push the altitude-driven ramps to the DOM: the window opening up, the HUD
+   * fading out, the feed dissolving. Called from the frame loop and once more
+   * when the descent ends, so a backgrounded tab (where rAF is paused but
+   * timers still fire) still arrives at the correct end state.
+   */
+  const applyRamps = useCallback((a: number) => {
+    const grow = frameGrow(a);
+    if (Math.abs(grow - lastGrow.current) > 0.002) {
+      lastGrow.current = grow;
+      const el = stage.current;
+      if (el) {
+        el.style.setProperty("--ix", `${(FRAME_X * (1 - grow)).toFixed(3)}%`);
+        el.style.setProperty("--iy", `${(FRAME_Y * (1 - grow)).toFixed(3)}%`);
+      }
+    }
+
+    /* --intro-hud lives on <html> because the skip control is owned by
+       <IntroStage>, not by this stage, and fades out with these readouts. */
+    const hud = hudFade(a);
+    if (Math.abs(hud - lastHud.current) > 0.004) {
+      lastHud.current = hud;
+      document.documentElement.style.setProperty("--intro-hud", hud.toFixed(3));
+    }
+
+    const feed = feedFade(a);
+    if (Math.abs(feed - lastFeed.current) > 0.004) {
+      lastFeed.current = feed;
+      if (canvas.current) canvas.current.style.opacity = feed.toFixed(3);
+    }
+  }, []);
+
   /* ── the sequence: one self-driving timer chain ───────────────────────── */
   useEffect(() => {
     let timer = 0;
@@ -95,6 +111,9 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
       descentAt.current = performance.now();
       setPhase("descent");
       timer = window.setTimeout(() => {
+        /* touchdown: settle the end state whether or not rAF was running */
+        alt.current = 0;
+        applyRamps(0);
         setPhase("blank");
         timer = window.setTimeout(() => {
           setPhase("complete");
@@ -104,7 +123,7 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
     }, BRIEF_MS);
 
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [applyRamps]);
 
   /* ── size the fullscreen feed once per layout change ──────────────────── */
   useEffect(() => {
@@ -124,42 +143,11 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   /* ── the descent. Altitude is a function of time, flared into the ground ─ */
   useTelemetry(() => {
     if (descentAt.current > 0) {
-      const p = clamp((performance.now() - descentAt.current) / DESCENT_MS, 0, 1);
-      /* (1-p)^1.8 falls fast and slows into the flare — the shape of an
-         autoland profile, not a linear slider. */
-      alt.current = CEILING * Math.pow(1 - p, 1.8);
+      alt.current = altitudeAt(performance.now() - descentAt.current);
     }
 
     const a = alt.current;
-
-    /* The window the feed shows through opens up as the aircraft comes down,
-       so the tag grows from both the projection and the frame. By touchdown it
-       has taken the whole screen. */
-    const grow = smoothstep((9 - a) / (9 - 1.2));
-    if (Math.abs(grow - lastGrow.current) > 0.002) {
-      lastGrow.current = grow;
-      const el = stage.current;
-      if (el) {
-        el.style.setProperty("--ix", `${(FRAME_X * (1 - grow)).toFixed(3)}%`);
-        el.style.setProperty("--iy", `${(FRAME_Y * (1 - grow)).toFixed(3)}%`);
-      }
-    }
-
-    /* Readouts, brackets and the skip chip all fade out through the flare, so
-       touchdown arrives on a bare screen. --intro-hud lives on <html> because
-       the skip control is owned by <IntroStage>, not by this stage. */
-    const hud = 1 - smoothstep((2.4 - a) / (2.4 - 0.9));
-    if (Math.abs(hud - lastHud.current) > 0.004) {
-      lastHud.current = hud;
-      document.documentElement.style.setProperty("--intro-hud", hud.toFixed(3));
-    }
-
-    /* Then the feed itself dissolves into the deck colour. */
-    const feed = 1 - smoothstep((0.5 - a) / (0.5 - 0.05));
-    if (Math.abs(feed - lastFeed.current) > 0.004) {
-      lastFeed.current = feed;
-      if (canvas.current) canvas.current.style.opacity = feed.toFixed(3);
-    }
+    applyRamps(a);
 
     if (Math.abs(a - lastDrawn.current) < 0.004) return;
     lastDrawn.current = a;
@@ -266,7 +254,9 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
               className="gcs-boot-line font-display text-h2 text-ink mt-4"
               style={{ animationDelay: "110ms" }}
             >
-              {MISSION ? `MISSION ${MISSION.id.slice(-2)} — ${MISSION.name}` : "MISSION 02"}
+              {MISSION
+                ? `MISSION ${MISSION.id.slice(-2)} — ${MISSION.name}`
+                : "MISSION 02"}
             </h2>
             <p
               className="gcs-boot-line text-data text-dim mt-3"
@@ -284,6 +274,7 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
           </div>
         </div>
       )}
+
       {phase === "complete" && (
         <div className="absolute inset-0 flex items-center justify-center px-6">
           <div className="gcs-charge w-full max-w-2xl text-center">

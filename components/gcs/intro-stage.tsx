@@ -146,16 +146,23 @@ export function IntroStage() {
       )}
 
       {flying && (
-        <button
-          type="button"
-          onClick={release}
-          /* --intro-hud is written by the landing stage so the chip fades out
-             with the rest of the HUD as the aircraft flares. */
-          style={{ opacity: "var(--intro-hud, 1)" }}
-          className="border-rule text-micro text-dim hover:border-data hover:text-data absolute right-4 bottom-4 border px-3 py-2 transition-colors"
-        >
-          SKIP INTRO · SPACE
-        </button>
+        <>
+          <p className="sr-only" role="status">
+            Arrival sequence playing. Press any key, or activate the skip
+            control, to go straight to the site.
+          </p>
+          <button
+            type="button"
+            onClick={release}
+            aria-label="Skip the arrival sequence"
+            /* --intro-hud is written by the landing stage so the chip fades out
+               with the rest of the HUD as the aircraft flares. */
+            style={{ opacity: "var(--intro-hud, 1)" }}
+            className="border-rule text-micro text-dim hover:border-data hover:text-data absolute right-4 bottom-4 border px-3 py-2 transition-colors"
+          >
+            SKIP INTRO · SPACE
+          </button>
+        </>
       )}
     </div>
   );
