@@ -97,6 +97,40 @@ export interface SimFrame {
   h: number;
 }
 
+/** A canvas sized to its CSS box, with a context ready to draw in CSS pixels. */
+export interface Surface {
+  ctx: CanvasRenderingContext2D;
+  w: number;
+  h: number;
+}
+
+/**
+ * Sizes a canvas backing store to its CSS box and returns a drawing surface.
+ * Call on mount, on resize and on visibility changes — never inside a frame
+ * loop, because reading clientWidth forces layout.
+ */
+export function fitCanvas(
+  canvas: HTMLCanvasElement | null,
+  maxDpr = 1.5,
+): Surface | null {
+  if (!canvas) return null;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  if (!w || !h) return null;
+
+  const dpr = Math.min(maxDpr, window.devicePixelRatio || 1);
+  const pw = Math.round(w * dpr);
+  const ph = Math.round(h * dpr);
+  if (canvas.width !== pw || canvas.height !== ph) {
+    canvas.width = pw;
+    canvas.height = ph;
+  }
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
 export function drawSim(ctx: CanvasRenderingContext2D, frame: SimFrame): void {
   const { mode, w, h } = frame;
   const alt = Math.max(0.12, frame.alt);
