@@ -307,6 +307,52 @@ html[data-intro="armed"] .gcs-deck {
   visibility: hidden;
 }
 
+/* the sign-off card winding up before the deck arrives: an escalating shake
+   that ends mid-throw, so the shockwave lands on the peak */
+@keyframes gcs-charge {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  15% {
+    transform: translate3d(-1px, 1px, 0) scale(1.004);
+  }
+  30% {
+    transform: translate3d(2px, -1px, 0) scale(1.009);
+  }
+  45% {
+    transform: translate3d(-2px, -2px, 0) scale(1.015);
+  }
+  60% {
+    transform: translate3d(3px, 2px, 0) scale(1.022);
+  }
+  75% {
+    transform: translate3d(-4px, 2px, 0) scale(1.032);
+  }
+  88% {
+    transform: translate3d(4px, -3px, 0) scale(1.044);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.06);
+  }
+}
+.gcs-charge {
+  animation: gcs-charge 470ms 780ms ease-in both;
+}
+
+/* the log-unseal progress line: real duration, not a fake loop */
+@keyframes gcs-charge-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.gcs-charge-bar {
+  transform-origin: left center;
+  animation: gcs-charge-bar 1200ms linear both;
+}
+
 /* ============================================================================
    FORM CONTROLS — themed natively so we keep real keyboard/touch semantics
    ========================================================================== */

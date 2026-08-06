@@ -284,6 +284,34 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
           </div>
         </div>
       )}
+      {phase === "complete" && (
+        <div className="absolute inset-0 flex items-center justify-center px-6">
+          <div className="gcs-charge w-full max-w-2xl text-center">
+            <p
+              className="gcs-boot-line text-micro text-nominal tnum"
+              style={{ animationDelay: "0ms" }}
+            >
+              TOUCHDOWN CONFIRMED · 0.00 m AGL · LAT ERR 0.00 m
+            </p>
+            <h2
+              className="gcs-boot-line font-display text-h2 text-ink mt-4"
+              style={{ animationDelay: "100ms" }}
+            >
+              MISSION COMPLETE
+            </h2>
+            <p
+              className="gcs-boot-line text-label text-signal tracking-label mt-4"
+              style={{ animationDelay: "200ms" }}
+            >
+              UNSEALING PILOT LOGS · BRINGING THE DECK UP
+              <span className="gcs-caret">_</span>
+            </p>
+            <div className="bg-rule mx-auto mt-5 h-px w-56 max-w-full">
+              <div className="gcs-charge-bar bg-signal h-px w-full" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
