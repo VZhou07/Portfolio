@@ -111,7 +111,7 @@ export interface SimFrame {
   h: number;
   /** Lateral error override — defaults to the nominal approach. */
   offset?: { x: number; y: number };
-  /** Something is across the lens: the detector loses the tag, flow does not. */
+  /** Something across the lens: detector loses the tag and feature flow degrades. */
   occluded?: boolean;
 }
 
@@ -174,7 +174,7 @@ export function drawSim(ctx: CanvasRenderingContext2D, frame: SimFrame): void {
     return;
   }
   if (mode === "features") {
-    drawFeatures(ctx, w, h, alt, focal, off);
+    drawFeatures(ctx, w, h, alt, focal, off, occluded);
     return;
   }
   drawRgb(ctx, w, h, alt, focal, px, py, occluded);
@@ -309,11 +309,15 @@ function drawRgb(
   } else {
     ctx.strokeStyle = "rgba(255,99,99,0.8)";
     ctx.setLineDash([4, 4]);
-    ctx.strokeRect(w / 2 - 26, h / 2 - 26, 52, 52);
+    ctx.strokeRect(w / 2 - 34, h / 2 - 26, 68, 52);
     ctx.setLineDash([]);
     ctx.fillStyle = "rgba(255,99,99,0.9)";
     ctx.font = "10px ui-monospace, monospace";
-    ctx.fillText("SEARCHING", w / 2 - 26, h / 2 - 30);
+    ctx.fillText(
+      occluded ? "NO TARGET IN SIGHT" : "SEARCHING",
+      w / 2 - 34,
+      h / 2 - 30,
+    );
   }
 }
 
@@ -417,33 +421,76 @@ function drawFeatures(
   alt: number,
   focal: number,
   off: { x: number; y: number },
+  occluded: boolean,
 ): void {
   ctx.fillStyle = "#05080a";
   ctx.fillRect(0, 0, w, h);
 
-  const prevAlt = alt * 1.04;
-  const prevOff = approachOffset(prevAlt);
+  /* Occluded = hold hover: no radial expansion from a fake descent step.
+     Survivors are sparse, short, and jittered — flow is degraded, not clean. */
+  const prevAlt = occluded ? alt : alt * 1.04;
+  const prevOff = occluded ? off : approachOffset(prevAlt);
   const s = focal / alt;
   const ps = focal / prevAlt;
+  const rand = occluded
+    ? mulberry32(((typeof performance !== "undefined" ? performance.now() : 0) / 40) | 0)
+    : null;
 
+  let drawn = 0;
   for (const f of FEATURES) {
-    const x = w / 2 + (f.x - off.x) * s;
-    const y = h / 2 + (f.y - off.y) * s;
+    if (occluded && rand && rand() > 0.28) continue;
+
+    let x = w / 2 + (f.x - off.x) * s;
+    let y = h / 2 + (f.y - off.y) * s;
     if (x < 0 || x > w || y < 0 || y > h) continue;
 
-    const x0 = w / 2 + (f.x - prevOff.x) * ps;
-    const y0 = h / 2 + (f.y - prevOff.y) * ps;
-    const mag = Math.hypot(x - x0, y - y0);
+    let x0 = w / 2 + (f.x - prevOff.x) * ps;
+    let y0 = h / 2 + (f.y - prevOff.y) * ps;
 
-    ctx.strokeStyle = `rgba(255,180,74,${clamp01(mag / 14) * 0.85})`;
+    if (occluded && rand) {
+      const j = 1.2 + rand() * 2.4;
+      x0 = x + (rand() - 0.5) * j;
+      y0 = y + (rand() - 0.5) * j;
+    }
+
+    const mag = Math.hypot(x - x0, y - y0);
+    const alpha = occluded
+      ? clamp01(mag / 6) * 0.35
+      : clamp01(mag / 14) * 0.85;
+
+    ctx.strokeStyle = occluded
+      ? `rgba(255,99,99,${alpha})`
+      : `rgba(255,180,74,${alpha})`;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x0, y0);
     ctx.lineTo(x, y);
     ctx.stroke();
 
-    ctx.fillStyle = "rgba(86,220,255,0.9)";
+    ctx.fillStyle = occluded
+      ? "rgba(255,99,99,0.55)"
+      : "rgba(86,220,255,0.9)";
     ctx.fillRect(x - 1, y - 1, 2, 2);
+    drawn += 1;
+  }
+
+  if (occluded) {
+    const bar = Math.max(46, (PAD_SIZE * s) * 0.95);
+    ctx.save();
+    ctx.translate(w / 2 - off.x * s, h / 2 - off.y * s);
+    ctx.rotate(0.42);
+    ctx.fillStyle = "rgba(4,7,10,0.88)";
+    ctx.fillRect(-bar * 0.5, -bar * 0.08, bar, bar * 0.55);
+    ctx.strokeStyle = "rgba(255,99,99,0.45)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-bar * 0.5, -bar * 0.08, bar, bar * 0.55);
+    ctx.restore();
+
+    ctx.fillStyle = "rgba(255,99,99,0.9)";
+    ctx.font = "10px ui-monospace, monospace";
+    ctx.fillText("FLOW DEGRADED · HOLD", 8, 14);
+    ctx.fillStyle = "rgba(150,175,182,0.7)";
+    ctx.fillText(`${drawn} TRACKS`, 8, 28);
   }
 }
 

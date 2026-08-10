@@ -30,7 +30,7 @@ const ALIGN_GATE = 0.2;
 /** Most recent detector events kept on screen. */
 const LOG_DEPTH = 6;
 
-type Phase = "TRANSIT" | "APPROACH" | "FLARE" | "TOUCHDOWN";
+type Phase = "TRANSIT" | "APPROACH" | "FLARE" | "TOUCHDOWN" | "HOVER";
 type Downlink = "PROBING" | "READY" | "MISSING";
 
 const TILES: { mode: SimMode; code: string; label: string }[] = [
@@ -46,7 +46,8 @@ const CHECKS = [
   { id: "down", label: "TOUCHDOWN" },
 ] as const;
 
-function phaseOf(alt: number): Phase {
+function phaseOf(alt: number, occluded: boolean): Phase {
+  if (occluded) return "HOVER";
   if (alt > 6) return "TRANSIT";
   if (alt > 2) return "APPROACH";
   if (alt > 0.3) return "FLARE";
@@ -64,6 +65,7 @@ function handover(alt: number): number {
  * The arrival sequence flew this profile once, clean, on rails. Here you get
  * what it did not have: the lever, a crosswind you can inject, an occluder you
  * can put across the lens, and the detector's event log reacting to both. The
+ * occluder holds hover with no target in sight and degrades feature flow. The
  * bay is still driven by one altitude value, and as it passes ~1.9 m the
  * simulated payload feed hands over to the real onboard clip.
  */
@@ -118,8 +120,12 @@ export function Approach() {
   const [crop, setCrop] = useState(false);
   /** Injected crosswind in m/s. Positive is from the left. */
   const [wind, setWind] = useState(0);
-  /** Something across the lens: the detector loses the tag, optical flow does not. */
+  /** Something across the lens: hold hover, drop the tag, degrade feature flow. */
   const [occluded, setOccluded] = useState(false);
+  const occludedRef = useRef(false);
+  /** Flash when AUTO LAND is rejected because the lens is occluded. */
+  const [landDeny, setLandDeny] = useState<string | null>(null);
+  const landDenyTimer = useRef<number | null>(null);
 
   const mission = MISSIONS.find((m) => m.id === FOOTAGE.missionId);
 
@@ -162,14 +168,19 @@ export function Approach() {
 
   /* ── the descent + every viewport, from one frame callback ─────────────── */
   useTelemetry((t) => {
-    /* 1. advance altitude */
-    if (auto.current === "LAND") {
+    const blocked = occludedRef.current;
+
+    /* 1. advance altitude — occluded holds hover (no further descent).
+       ABORT still climbs clear so you can get out of a bad approach. */
+    if (auto.current === "ABORT") {
+      alt.current = Math.min(CEILING, alt.current + 3.4 * t.dt);
+      if (alt.current === CEILING) auto.current = "OFF";
+    } else if (blocked) {
+      if (auto.current === "LAND") auto.current = "OFF";
+    } else if (auto.current === "LAND") {
       const rate = alt.current > 2 ? 2.3 : 0.7; /* flare slows the descent */
       alt.current = Math.max(0, alt.current - rate * t.dt);
       if (alt.current === 0) auto.current = "OFF";
-    } else if (auto.current === "ABORT") {
-      alt.current = Math.min(CEILING, alt.current + 3.4 * t.dt);
-      if (alt.current === CEILING) auto.current = "OFF";
     } else if (!manual && t.sectionIndex === 3) {
       /* scroll flies it: 0.12..0.9 of the section maps to ceiling..ground */
       const p = clamp((t.sectionProgress - 0.12) / 0.78, 0, 1);
@@ -177,7 +188,7 @@ export function Approach() {
     }
 
     const a = alt.current;
-    const nextPhase = phaseOf(a);
+    const nextPhase = phaseOf(a, blocked);
     if (nextPhase !== phase) setPhase(nextPhase);
 
     /* 2. handover crossfade — both layers share the same HUD overlay */
@@ -222,8 +233,9 @@ export function Approach() {
       if (tr) drawTrace(tr.ctx, tr.w, tr.h, history.current, CEILING);
     }
 
-    /* 6. redraw the viewports only when the altitude actually moved */
-    if (Math.abs(a - lastDrawn.current) < 0.008) return;
+    /* 6. redraw the viewports when altitude moved — or every frame while
+       occluded so the degraded feature-flow noise keeps updating on hover */
+    if (!blocked && Math.abs(a - lastDrawn.current) < 0.008) return;
     lastDrawn.current = a;
     frameNo.current += 1;
 
@@ -236,7 +248,7 @@ export function Approach() {
         w: big.w,
         h: big.h,
         offset: off,
-        occluded,
+        occluded: blocked,
       });
     }
 
@@ -249,7 +261,7 @@ export function Approach() {
           w: c.w,
           h: c.h,
           offset: off,
-          occluded,
+          occluded: blocked,
         });
       }
     }
@@ -258,9 +270,10 @@ export function Approach() {
   /* ── text readouts at 10 Hz ────────────────────────────────────────────── */
   useTelemetryThrottled((t) => {
     const a = alt.current;
+    const blocked = occludedRef.current;
     const focal = (surfaces.current.big?.w ?? 640) * 0.85;
     const px = tagPixels(a, focal);
-    const conf = occluded ? 0 : tagConfidence(a, px);
+    const conf = blocked ? 0 : tagConfidence(a, px);
     const off = windOffset(a, wind);
     const err = Math.hypot(off.x, off.y);
 
@@ -270,8 +283,15 @@ export function Approach() {
     }
     if (errText.current) errText.current.textContent = err.toFixed(2);
     if (vsText.current) {
-      const rate =
-        auto.current === "LAND" ? (a > 2 ? -2.3 : -0.7) : auto.current === "ABORT" ? 3.4 : -t.vspeed * 0.25;
+      const rate = blocked
+        ? 0
+        : auto.current === "LAND"
+          ? a > 2
+            ? -2.3
+            : -0.7
+          : auto.current === "ABORT"
+            ? 3.4
+            : -t.vspeed * 0.25;
       vsText.current.textContent = `${rate >= 0 ? "+" : ""}${rate.toFixed(1)}`;
     }
     if (tcText.current) {
@@ -285,9 +305,9 @@ export function Approach() {
     /* checklist gates are real conditions, not a timeline */
     const state: Record<string, boolean> = {
       acq: conf > 0,
-      algn: err < ALIGN_GATE,
-      flare: a <= 2,
-      down: a <= 0.3,
+      algn: !blocked && err < ALIGN_GATE,
+      flare: !blocked && a <= 2,
+      down: !blocked && a <= 0.3,
     };
     for (const c of CHECKS) {
       const el = checkRefs.current[c.id];
@@ -300,7 +320,11 @@ export function Approach() {
       if (state.acq) {
         emit("ACQ", `TAG 0 ACQUIRED · CONF ${conf.toFixed(2)}`, "ok");
       } else {
-        emit("LOST", "TARGET LOST · SEARCHING", "warn");
+        emit(
+          "LOST",
+          blocked ? "NO TARGET IN SIGHT · HOLDING HOVER" : "TARGET LOST · SEARCHING",
+          "warn",
+        );
       }
     }
     if (state.algn !== wasAligned.current) {
@@ -359,16 +383,32 @@ export function Approach() {
     const onPause = () => setPlaying(false);
 
     v.addEventListener("loadedmetadata", ok);
+    v.addEventListener("canplay", ok);
     v.addEventListener("error", bad);
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
+
+    /* Cached loads often fire loadedmetadata before this effect attaches.
+       readyState >= HAVE_METADATA (1) means the clip is already good. */
+    if (v.error) bad();
+    else if (v.readyState >= 1) ok();
+    else v.load();
+
     return () => {
       v.removeEventListener("loadedmetadata", ok);
+      v.removeEventListener("canplay", ok);
       v.removeEventListener("error", bad);
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
     };
   }, []);
+
+  useEffect(
+    () => () => {
+      if (landDenyTimer.current) window.clearTimeout(landDenyTimer.current);
+    },
+    [],
+  );
 
   const takeManual = useCallback(() => setManual(true), []);
 
@@ -378,14 +418,66 @@ export function Approach() {
     setManual(true);
   }, []);
 
+  const flashLandDeny = useCallback(
+    (msg: string) => {
+      setLandDeny(msg);
+      if (landDenyTimer.current) window.clearTimeout(landDenyTimer.current);
+      landDenyTimer.current = window.setTimeout(() => setLandDeny(null), 4200);
+      /* Short descending caution chirp — text is the real feedback if audio is blocked. */
+      try {
+        const AC =
+          window.AudioContext ||
+          (
+            window as unknown as {
+              webkitAudioContext: typeof AudioContext;
+            }
+          ).webkitAudioContext;
+        if (!AC) return;
+        const ctx = new AC();
+        const t0 = ctx.currentTime;
+        for (const [i, freq] of [
+          [0, 920],
+          [1, 460],
+        ] as const) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.value = freq;
+          const start = t0 + i * 0.11;
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.07, start + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.095);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(start);
+          osc.stop(start + 0.11);
+        }
+        window.setTimeout(() => void ctx.close(), 450);
+      } catch {
+        /* autoplay policy / unsupported — the text banner still fires */
+      }
+    },
+    [],
+  );
+
   const autoLand = useCallback(() => {
+    if (occludedRef.current) {
+      emit("DENY", "AUTO LAND REJECTED · NO TARGET IN SIGHT", "warn");
+      flashLandDeny(
+        "AUTO LAND REJECTED — NO TARGET IN SIGHT · HOLDING HOVER",
+      );
+      return;
+    }
     auto.current = "LAND";
     setManual(true);
-  }, []);
+    setLandDeny(null);
+    emit("AUTO", "AUTO LAND ARMED", "ok");
+  }, [emit, flashLandDeny]);
 
   const abort = useCallback(() => {
     auto.current = "ABORT";
     setManual(true);
+    setLandDeny(null);
   }, []);
 
   const release = useCallback(() => {
@@ -411,15 +503,17 @@ export function Approach() {
   );
 
   const toggleOcclude = useCallback(() => {
-    setOccluded((o) => {
-      lastDrawn.current = -1;
-      emit(
-        "OCC",
-        o ? "OCCLUDER WITHDRAWN" : "OCCLUDER ACROSS LENS",
-        o ? "info" : "warn",
-      );
-      return !o;
-    });
+    const next = !occludedRef.current;
+    occludedRef.current = next;
+    lastDrawn.current = -1;
+    if (next) {
+      if (auto.current === "LAND") auto.current = "OFF";
+      setManual(true);
+      emit("HOLD", "NO TARGET IN SIGHT · HOLDING HOVER", "warn");
+    } else {
+      emit("OCC", "OCCLUDER WITHDRAWN · DESCENT AUTHORIZED", "info");
+    }
+    setOccluded(next);
   }, [emit]);
 
   const toggleVideo = useCallback(() => {
@@ -475,9 +569,11 @@ export function Approach() {
                   className={`font-display text-h3 tnum ${
                     phase === "TOUCHDOWN"
                       ? "text-nominal"
-                      : phase === "FLARE"
-                        ? "text-signal"
-                        : "text-mid"
+                      : phase === "HOVER"
+                        ? "text-caution"
+                        : phase === "FLARE"
+                          ? "text-signal"
+                          : "text-mid"
                   }`}
                 >
                   {phase}
@@ -534,6 +630,7 @@ export function Approach() {
               <button
                 type="button"
                 onClick={autoLand}
+                aria-describedby={landDeny ? "auto-land-deny" : undefined}
                 className="border-signal bg-signal text-void text-micro hover:bg-caution border px-3 py-2 font-semibold transition-colors"
               >
                 AUTO LAND
@@ -555,6 +652,17 @@ export function Approach() {
                 </button>
               )}
             </div>
+
+            <p
+              id="auto-land-deny"
+              role="status"
+              aria-live="assertive"
+              className={`text-micro mt-2 min-h-5 leading-relaxed ${
+                landDeny ? "text-caution" : "sr-only"
+              }`}
+            >
+              {landDeny ?? ""}
+            </p>
 
             {/* fault injection — the part the arrival sequence never showed */}
             <div className="border-rule mt-5 border-t pt-4">
@@ -609,7 +717,8 @@ export function Approach() {
               <p className="text-micro text-dim mt-2 leading-relaxed">
                 WIND LEAVES A REAL TOUCHDOWN ERROR · PAST{" "}
                 <span className="text-caution tnum">4 m/s</span> THE ALIGNED GATE
-                FAILS. THE OCCLUDER DROPS THE TAG BUT NOT THE OPTICAL FLOW.
+                FAILS. THE OCCLUDER HOLDS HOVER — NO TARGET, FEATURE FLOW
+                DEGRADES.
               </p>
             </div>
 

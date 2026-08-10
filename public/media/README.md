@@ -1,15 +1,15 @@
 # Onboard footage
 
-Drop your landing clip here with these exact names:
+Landing clip paths used by section 04:
 
 ```
 public/media/landing.mp4          # the clip (H.264 mp4 plays everywhere)
 public/media/landing-poster.jpg   # optional first frame, shown before playback
 ```
 
-Until `landing.mp4` exists the downlink panel in section 04 reports
-`NO SIGNAL` on purpose — the sim-to-real handover still runs, it just fades to
-the missing-media notice instead of the video. Nothing else needs changing.
+Until `landing.mp4` exists the downlink panel reports `NO SIGNAL` on purpose —
+the sim-to-real handover still runs, it just fades to the missing-media notice
+instead of the video. Nothing else needs changing.
 
 Notes:
 

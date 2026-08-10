@@ -1,4 +1,4 @@
-# Ground Control Station — flight-ops portfolio
+# Vincent Zhou — Flight Ops Portfolio
 
 A single-page portfolio built as a drone ground control station. Dark cockpit
 deck, amber primary signal, cyan live data. Every readout on the page is measured
@@ -19,26 +19,17 @@ pnpm lint
 pnpm test     # vitest: flight profile, approach geometry, arrival state machine
 ```
 
-## Fill in your details
+## Content
 
-All content is in one file: **`lib/content.ts`**. Anything wrapped in
-`[SQUARE BRACKETS]` is a placeholder — search for `[` and work through it.
+All copy and links live in **`lib/content.ts`**: profile, missions, experience,
+skills, contact channels, and onboard footage metadata.
 
-| What                  | Where in `lib/content.ts` |
-| --------------------- | ------------------------- |
-| Name, tagline, bio    | `PROFILE`                 |
-| Projects              | `MISSIONS`                |
-| Experience timeline   | `WAYPOINTS`               |
-| Skills                | `SKILL_GROUPS`            |
-| Email / social links  | `COMMS`                   |
-| Landing clip + caption| `FOOTAGE`                 |
+A few behaviours worth knowing:
 
-Two things worth knowing:
-
-- **Placeholder links never ship as dead links.** `isPlaceholder()` detects
-  unfilled values, and those render as a disabled `UNSET` chip instead of an
-  anchor. The contact form's TRANSMIT button stays disabled, with a visible
-  explanation, until `COMMS[0]` holds a real address.
+- **Unset links never ship as dead anchors.** `isPlaceholder()` detects empty or
+  invalid values, and those render as a disabled `UNSET` chip instead of a link.
+  The contact form's TRANSMIT button stays disabled until `COMMS[0]` holds a real
+  address.
 - **Skill levels are computed, not typed.** Each skill declares `matches: []`
   stack tokens; `lib/derive.ts` counts how many missions list them and that count
   is the bar height. Keep stack strings consistent between `MISSIONS[].stack` and
@@ -81,7 +72,7 @@ Pacing lives in one place, `lib/intro-profile.ts`, and
 ## Add the landing footage
 
 Section 04 flies a simulated descent and hands over to real onboard video at
-touchdown. Drop your clip at:
+touchdown. Drop the clip at:
 
 ```
 public/media/landing.mp4
@@ -90,6 +81,8 @@ public/media/landing-poster.jpg   # optional
 
 Until then the downlink panel reports `NO SIGNAL` on purpose. See
 `public/media/README.md`.
+
+Drop a PDF at `public/resume.pdf` for the RESUME chips in Preflight and Dossier.
 
 ## Layout of the code
 
@@ -100,7 +93,7 @@ app/
   globals.css          design tokens, type scale, HUD surfaces, keyframes
   not-found.tsx        404 that still gets you somewhere
 lib/
-  content.ts           all copy and links  ← edit this
+  content.ts           all copy and links
   derive.ts            counts and stats computed from MISSIONS
   flight-computer.tsx  one rAF loop + one scroll/pointer listener for the site
   intro-profile.ts     the cold-open's pacing and descent, as pure functions
@@ -129,8 +122,8 @@ components/
   contacts brighten as the beam crosses them. Each contact is a real button.
 - **Approach (04)** is the replay of the arrival, with the controls the intro did
   not have: the descent lever, `AUTO LAND`, an injectable crosswind, an occluder
-  you can put across the lens, and a detector event log that only records gates
-  that actually changed. Viewports are drawn with
+  you can put across the lens (holds hover, no target, degraded feature flow),
+  and a detector event log that only records gates that actually changed. Viewports are drawn with
   `pixels = metres · f / altitude` and `depth = h · √(1 + (r/f)²)`. Past about
   4 m/s of crosswind the `LATERAL ALIGNED` gate genuinely fails.
 - **Instrument panel** bars grow from `scaleX(var(--level))` when the section
