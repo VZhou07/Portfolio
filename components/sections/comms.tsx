@@ -3,9 +3,9 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { MicroLabel } from "@/components/gcs/primitives";
 import { Section } from "@/components/gcs/section";
-import { COMMS, PROFILE, SECTIONS, isPlaceholder } from "@/lib/content";
+import { COMMS, PROFILE, isPlaceholder, sectionOf } from "@/lib/content";
 
-const DEF = SECTIONS[6];
+const DEF = sectionOf("comms");
 
 const BANDS = [
   "ROLE / INTERNSHIP",

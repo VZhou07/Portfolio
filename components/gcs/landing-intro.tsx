@@ -21,17 +21,20 @@ import {
   FRAME_X,
   FRAME_Y,
   frameGrow,
+  handedOff,
   hudFade,
   phaseOf,
 } from "@/lib/intro-profile";
 import {
-  approachOffset,
-  drawSim,
-  fitCanvas,
-  tagConfidence,
-  tagPixels,
+  alignTolerance,
+  descentTaper,
+  drawOrb,
+  fitOrbCanvas,
+  modelledMatches,
+  repeatOffset,
+  teachRungFor,
   type Surface,
-} from "@/lib/sim-render";
+} from "@/lib/orb-render";
 
 type Phase = "brief" | "descent" | "blank" | "complete";
 
@@ -40,10 +43,11 @@ const MISSION = MISSIONS.find((m) => m.id === FOOTAGE.missionId);
 /**
  * ARRIVAL — STAGE TWO
  * ----------------------------------------------------------------------------
- * The precision landing, flown by the autopilot. Nothing here is coupled to
- * scroll: altitude is a function of time, and every readout is computed from it
- * with the same functions section 04 uses, so the numbers are real even though
- * the descent is on rails. Timing and ramps live in lib/intro-profile.ts.
+ * The teach-and-repeat precision landing, flown by the autopilot. Nothing here
+ * is coupled to scroll: altitude is a function of time, and every readout is
+ * computed from it with the same functions — and the same flight constants —
+ * that section 04 uses, so the numbers mean something even though the descent
+ * is on rails. Timing and ramps live in lib/intro-profile.ts.
  */
 export function LandingIntro({ onDone }: { onDone: () => void }) {
   const done = useRef(onDone);
@@ -57,8 +61,9 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const altText = useRef<HTMLSpanElement>(null);
   const phaseText = useRef<HTMLSpanElement>(null);
-  const confText = useRef<HTMLSpanElement>(null);
+  const matchText = useRef<HTMLSpanElement>(null);
   const errText = useRef<HTMLSpanElement>(null);
+  const rungText = useRef<HTMLSpanElement>(null);
 
   /* flight state lives outside React: it changes every frame */
   const alt = useRef(CEILING);
@@ -128,7 +133,7 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   /* ── size the fullscreen feed once per layout change ──────────────────── */
   useEffect(() => {
     const remeasure = () => {
-      surface.current = fitCanvas(canvas.current);
+      surface.current = fitOrbCanvas(canvas.current);
       lastDrawn.current = -1;
     };
     remeasure();
@@ -140,7 +145,7 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
     };
   }, []);
 
-  /* ── the descent. Altitude is a function of time, flared into the ground ─ */
+  /* ── the descent. Altitude is a function of time. ─────────────────────── */
   useTelemetry(() => {
     if (descentAt.current > 0) {
       alt.current = altitudeAt(performance.now() - descentAt.current);
@@ -149,16 +154,20 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
     const a = alt.current;
     applyRamps(a);
 
-    if (Math.abs(a - lastDrawn.current) < 0.004) return;
+    if (Math.abs(a - lastDrawn.current) < 0.003) return;
     lastDrawn.current = a;
 
     const s = surface.current;
     if (s) {
-      drawSim(s.ctx, {
-        mode: "rgb",
-        alt: Math.max(a, CAM_FLOOR),
+      const shown = Math.max(a, CAM_FLOOR);
+      drawOrb(s.ctx, {
+        mode: "repeat",
+        alt: shown,
+        teachAlt: teachRungFor(shown),
+        err: repeatOffset(a),
         w: s.w,
         h: s.h,
+        handedOff: handedOff(a),
       });
     }
   });
@@ -167,17 +176,24 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   useTelemetryThrottled(() => {
     const a = alt.current;
     const shown = Math.max(a, CAM_FLOOR);
-    const focal = (surface.current?.w ?? 640) * 0.85;
-    const conf = tagConfidence(shown, tagPixels(shown, focal));
-    const off = approachOffset(a);
+    const rung = teachRungFor(shown);
+    const off = repeatOffset(a);
+    const err = Math.hypot(off.x, off.y);
+    const cold = handedOff(a);
 
     if (altText.current) altText.current.textContent = a.toFixed(2);
     if (phaseText.current) phaseText.current.textContent = phaseOf(a);
-    if (confText.current) {
-      confText.current.textContent = conf > 0 ? conf.toFixed(2) : "--";
+    if (rungText.current) rungText.current.textContent = rung.toFixed(2);
+    if (matchText.current) {
+      matchText.current.textContent = cold
+        ? "--"
+        : String(modelledMatches(rung / shown));
     }
     if (errText.current) {
-      errText.current.textContent = Math.hypot(off.x, off.y).toFixed(2);
+      errText.current.textContent = (err * 100).toFixed(0);
+      /* colour the error against the same cone the flight code applies */
+      errText.current.dataset.ok = err <= alignTolerance(a) ? "true" : "false";
+      errText.current.title = `descent authority ${descentTaper(err, a).toFixed(2)}`;
     }
   }, 12);
 
@@ -212,24 +228,31 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
         <span className="border-signal/70 absolute top-0 right-0 h-5 w-5 border-t border-r" />
         <span className="border-signal/70 absolute bottom-0 left-0 h-5 w-5 border-b border-l" />
         <span className="border-signal/70 absolute right-0 bottom-0 h-5 w-5 border-b border-r" />
-        <span className="bg-signal/60 absolute top-1/2 left-1/2 h-px w-7 -translate-x-1/2" />
-        <span className="bg-signal/60 absolute top-1/2 left-1/2 h-7 w-px -translate-y-1/2" />
 
-        {/* minimal corner overlay — four numbers, all computed from altitude */}
-        <div className="text-micro absolute inset-x-7 top-1 flex justify-between">
+        {/* corner overlay — every number computed from altitude */}
+        <div className="text-micro absolute inset-x-7 top-1 flex justify-between gap-4">
           <span className="text-data tnum">
-            ALT <span ref={altText}>12.00</span> m
+            AGL <span ref={altText}>7.50</span> m
           </span>
           <span className="text-signal">
-            <span ref={phaseText}>TRANSIT</span>
+            <span ref={phaseText}>REPEAT</span>
           </span>
         </div>
-        <div className="text-micro absolute inset-x-7 bottom-1 flex justify-between">
+        <div className="text-micro absolute inset-x-7 bottom-1 flex justify-between gap-4">
           <span className="text-dim tnum">
-            TAG CONF <span ref={confText}>--</span>
+            TEACH RUNG <span ref={rungText}>7.50</span> m ·{" "}
+            <span ref={matchText}>0</span> MATCHES
           </span>
           <span className="text-dim tnum">
-            LAT ERR <span ref={errText}>0.00</span> m
+            XY ERR{" "}
+            <span
+              ref={errText}
+              data-ok="false"
+              className="data-[ok=true]:text-nominal data-[ok=false]:text-signal"
+            >
+              0
+            </span>{" "}
+            cm
           </span>
         </div>
       </div>
@@ -248,7 +271,7 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
               className="gcs-boot-line text-micro text-nominal"
               style={{ animationDelay: "0ms" }}
             >
-              SELF TEST COMPLETE · ALL SYSTEMS NOMINAL
+              TEACH MAP LOADED · NO MARKER ON THE GROUND
             </p>
             <h2
               className="gcs-boot-line font-display text-h2 text-ink mt-4"
@@ -256,19 +279,19 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
             >
               {MISSION
                 ? `MISSION ${MISSION.id.slice(-2)} — ${MISSION.name}`
-                : "MISSION 02"}
+                : "MISSION 01 — PRECISION LANDING"}
             </h2>
             <p
               className="gcs-boot-line text-data text-dim mt-3"
               style={{ animationDelay: "220ms" }}
             >
-              {MISSION?.subtitle ?? "OPTIMAL-TARGET TOUCHDOWN"}
+              {MISSION?.subtitle ?? "NO MARKER, NO GPS FIX"}
             </p>
             <p
               className="gcs-boot-line text-label text-signal tracking-label mt-6"
               style={{ animationDelay: "330ms" }}
             >
-              AUTONOMY IN COMMAND · STAND BY
+              MATCHING WHAT THE CAMERA REMEMBERS · STAND BY
               <span className="gcs-caret">_</span>
             </p>
           </div>
@@ -282,13 +305,13 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
               className="gcs-boot-line text-micro text-nominal tnum"
               style={{ animationDelay: "0ms" }}
             >
-              TOUCHDOWN CONFIRMED · 0.00 m AGL · LAT ERR 0.00 m
+              ON GROUND · 15 cm FROM THE LAUNCH POINT · NO FIDUCIAL USED
             </p>
             <h2
               className="gcs-boot-line font-display text-h2 text-ink mt-4"
               style={{ animationDelay: "100ms" }}
             >
-              MISSION COMPLETE
+              LANDED ON WHAT IT REMEMBERED
             </h2>
             <p
               className="gcs-boot-line text-label text-signal tracking-label mt-4"

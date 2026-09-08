@@ -1,12 +1,11 @@
 import { AttitudeIndicator } from "@/components/gcs/attitude-indicator";
 import { JumpButton, LocalClock } from "@/components/gcs/controls";
 import { Frame, LinkChip, MicroLabel, Rule } from "@/components/gcs/primitives";
-import { RadarScope } from "@/components/gcs/radar-scope";
 import { Reveal } from "@/components/gcs/reveal";
-import { PROFILE, SECTIONS } from "@/lib/content";
+import { PROFILE, SECTIONS, sectionOf } from "@/lib/content";
 import { FLEET } from "@/lib/derive";
 
-const DEF = SECTIONS[0];
+const DEF = sectionOf("preflight");
 
 /**
  * Hero. Deliberately not a centred stack: the identity plate is offset left with
@@ -89,8 +88,8 @@ export function Preflight() {
             <Reveal delay={150}>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <JumpButton to="missions">OPEN MISSION LOG</JumpButton>
-                <JumpButton to="approach" variant="ghost">
-                  WATCH THE LANDING
+                <JumpButton to="teach-repeat" variant="ghost">
+                  SEE THE LANDING
                 </JumpButton>
                 <JumpButton to="comms" variant="ghost">
                   OPEN COMMS
@@ -107,7 +106,7 @@ export function Preflight() {
           </div>
 
           {/* ── instruments ────────────────────────────────────────────── */}
-          <div className="gcs-hero-bank grid gap-4 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-1 xl:col-span-4">
+          <div className="gcs-hero-bank grid gap-4 lg:col-span-5 xl:col-span-4">
             <Reveal delay={60}>
               <Frame
                 code="ADI"
@@ -116,17 +115,6 @@ export function Preflight() {
                 aside={<span className="text-micro text-dim">CURSOR + SCROLL</span>}
               >
                 <AttitudeIndicator />
-              </Frame>
-            </Reveal>
-
-            <Reveal delay={120}>
-              <Frame
-                code="RDR"
-                title="MISSION SCOPE"
-                tone="signal"
-                aside={<span className="text-micro text-dim">CLICK A CONTACT</span>}
-              >
-                <RadarScope />
               </Frame>
             </Reveal>
           </div>

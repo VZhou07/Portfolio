@@ -440,8 +440,8 @@ function drawFeatures(
   for (const f of FEATURES) {
     if (occluded && rand && rand() > 0.28) continue;
 
-    let x = w / 2 + (f.x - off.x) * s;
-    let y = h / 2 + (f.y - off.y) * s;
+    const x = w / 2 + (f.x - off.x) * s;
+    const y = h / 2 + (f.y - off.y) * s;
     if (x < 0 || x > w || y < 0 || y > h) continue;
 
     let x0 = w / 2 + (f.x - prevOff.x) * ps;

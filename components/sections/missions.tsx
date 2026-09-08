@@ -6,12 +6,13 @@ import { Reveal } from "@/components/gcs/reveal";
 import {
   MISSIONS,
   SECTIONS,
+  sectionOf,
   type Mission,
   type StatusCode,
 } from "@/lib/content";
 import { STACK_INDEX, STATUS_INDEX, statusStyle, verification } from "@/lib/derive";
 
-const DEF = SECTIONS[2];
+const DEF = sectionOf("missions");
 
 /** Flown vs still on the bench — real grouping, not decoration. */
 const FLOWN: StatusCode[] = ["DEPLOYED", "FLIGHT-VERIFIED", "COMPLETE"];

@@ -2,10 +2,10 @@ import type { CSSProperties } from "react";
 import { Frame, MicroLabel } from "@/components/gcs/primitives";
 import { Reveal } from "@/components/gcs/reveal";
 import { Section } from "@/components/gcs/section";
-import { MISSIONS, SECTIONS, isPlaceholder } from "@/lib/content";
+import { ALSO_RUNNING, MISSIONS, isPlaceholder, sectionOf } from "@/lib/content";
 import { SKILL_PEAK, SKILL_STATS } from "@/lib/derive";
 
-const DEF = SECTIONS[5];
+const DEF = sectionOf("instruments");
 
 /**
  * Instrument panel. There is no self-assessed "90% proficient" anywhere: each
@@ -105,6 +105,40 @@ export function Instruments() {
           , counted from the mission log in section 03 — so it measures how much of
           the work leaned on something, not how good anyone claims to be. The
           mission codes under each channel are links: follow them and check.
+        </p>
+      </div>
+
+      {/* Everything real but unlogged. No bar, because there is no count to
+          draw one from — a fabricated level here would undo the whole panel. */}
+      <div className="border-rule bg-panel/50 mt-4 border p-4">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <MicroLabel>ALSO IN THE TOOLBOX · NO LOGGED SORTIE</MicroLabel>
+          <span className="text-micro text-dim tnum">
+            {ALSO_RUNNING.reduce((n, g) => n + g.items.length, 0)} UNMETERED
+          </span>
+        </div>
+        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {ALSO_RUNNING.map((group) => (
+            <div key={group.group}>
+              <dt className="text-micro text-signal mb-1.5">{group.group}</dt>
+              <dd>
+                <ul className="flex flex-wrap gap-1.5">
+                  {group.items.map((item) => (
+                    <li
+                      key={item}
+                      className="border-rule text-micro text-dim border border-dashed px-2 py-0.5"
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-micro text-dim mt-3 leading-relaxed">
+          COURSEWORK, HARDWARE LABS AND SUPPORTING TOOLING. LISTED WITHOUT A
+          SIGNAL LEVEL BECAUSE NO MISSION ABOVE MEASURES THEM.
         </p>
       </div>
     </Section>

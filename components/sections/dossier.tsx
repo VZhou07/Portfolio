@@ -1,10 +1,10 @@
 import { Frame, LinkChip, MicroLabel, SignalBars } from "@/components/gcs/primitives";
 import { Reveal } from "@/components/gcs/reveal";
 import { Section } from "@/components/gcs/section";
-import { COMMS, MISSIONS, PROFILE, SECTIONS } from "@/lib/content";
+import { COMMS, MISSIONS, PROFILE, sectionOf } from "@/lib/content";
 import { DOMAIN_INDEX, FLEET, STACK_INDEX } from "@/lib/derive";
 
-const DEF = SECTIONS[1];
+const DEF = sectionOf("dossier");
 
 export function Dossier() {
   const orgs = Array.from(new Set(MISSIONS.map((m) => m.org)));

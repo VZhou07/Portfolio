@@ -1,11 +1,12 @@
 import { JumpButton } from "@/components/gcs/controls";
 import { SiteShell } from "@/components/gcs/site-shell";
-import { Approach } from "@/components/sections/approach";
 import { Comms } from "@/components/sections/comms";
 import { Dossier } from "@/components/sections/dossier";
 import { Instruments } from "@/components/sections/instruments";
 import { Missions } from "@/components/sections/missions";
 import { Preflight } from "@/components/sections/preflight";
+import { TagBaseline } from "@/components/sections/tag-baseline";
+import { TeachRepeat } from "@/components/sections/teach-repeat";
 import { Waypoints } from "@/components/sections/waypoints";
 import { PROFILE, SECTIONS } from "@/lib/content";
 import { FLEET } from "@/lib/derive";
@@ -23,7 +24,8 @@ export default function Page() {
         <Preflight />
         <Dossier />
         <Missions />
-        <Approach />
+        <TeachRepeat />
+        <TagBaseline />
         <Waypoints />
         <Instruments />
         <Comms />

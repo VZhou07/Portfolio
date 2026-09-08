@@ -25,6 +25,7 @@ const TONE_TEXT: Record<Tone, string> = {
 };
 
 export function Frame({
+  id,
   code,
   title,
   aside,
@@ -33,6 +34,8 @@ export function Frame({
   bodyClassName = "",
   children,
 }: {
+  /** Optional anchor target, so in-section jump chips can reach the panel. */
+  id?: string;
   code?: string;
   title?: string;
   aside?: ReactNode;
@@ -43,7 +46,10 @@ export function Frame({
 }) {
   return (
     <div
-      className={`gcs-notch border-rule bg-panel/85 relative border ${className}`}
+      id={id}
+      className={`gcs-notch border-rule bg-panel/85 relative border ${
+        id ? "scroll-mt-16" : ""
+      } ${className}`}
     >
       {/* tick marks on the two square corners */}
       <span

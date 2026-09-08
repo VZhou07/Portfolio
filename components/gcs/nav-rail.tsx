@@ -148,7 +148,7 @@ export function NavRail() {
     progress.current?.setAttribute("y2", String(p.y));
   });
 
-  /* -- keyboard slew: 1..7 jumps to a waypoint ---------------------------- */
+  /* -- keyboard slew: 1..N jumps to a waypoint ---------------------------- */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -187,7 +187,7 @@ export function NavRail() {
       } inset-x-0 bottom-0`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {/* active label, mobile only — 7 full labels will not fit a phone bar */}
+      {/* active label, mobile only — the full label set will not fit a phone bar */}
       <span
         aria-hidden="true"
         className="bg-void/95 border-rule text-micro text-signal absolute -top-7 left-1/2 -translate-x-1/2 border px-2 py-1 lg:hidden"
@@ -275,7 +275,7 @@ export function NavRail() {
       </ul>
 
       <span className="text-micro text-dim absolute bottom-2 left-1/2 hidden -translate-x-1/2 lg:block">
-        1–7
+        1–{SECTIONS.length}
       </span>
     </nav>
   );

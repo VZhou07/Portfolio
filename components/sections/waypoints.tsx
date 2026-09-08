@@ -3,11 +3,13 @@
 import { useEffect, useRef } from "react";
 import { MicroLabel } from "@/components/gcs/primitives";
 import { Section } from "@/components/gcs/section";
-import { SECTIONS, WAYPOINTS } from "@/lib/content";
+import { sectionOf, sectionSlot, WAYPOINTS } from "@/lib/content";
 import { clamp } from "@/lib/derive";
 import { useTelemetry } from "@/lib/flight-computer";
 
-const DEF = SECTIONS[4];
+const DEF = sectionOf("waypoints");
+/** Scroll slot this section occupies — the route only draws once it is active. */
+const SLOT = sectionSlot("waypoints");
 
 /**
  * Flight-log route. The connector is drawn by scroll position — the amber
@@ -44,14 +46,14 @@ export function Waypoints() {
   }, []);
 
   useTelemetry((t) => {
-    if (t.sectionIndex < 4) {
+    if (t.sectionIndex < SLOT) {
       /* not there yet — keep the route undrawn */
       if (drawn.current) drawn.current.style.transform = "scaleY(0)";
       return;
     }
 
     /* the route draws across the first 70% of the section */
-    const p = t.sectionIndex > 4 ? 1 : clamp(t.sectionProgress / 0.7, 0, 1);
+    const p = t.sectionIndex > SLOT ? 1 : clamp(t.sectionProgress / 0.7, 0, 1);
     if (drawn.current) drawn.current.style.transform = `scaleY(${p.toFixed(4)})`;
 
     for (let i = 0; i < markers.current.length; i += 1) {
