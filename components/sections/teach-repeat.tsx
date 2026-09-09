@@ -993,42 +993,6 @@ export function TeachRepeat() {
               guess that it might help.
             </p>
           </Frame>
-
-          <Frame code="PRV" title="HOW THESE NUMBERS SURVIVED" tone="dim">
-            <ul className="text-data text-dim space-y-2.5">
-              <li>
-                <span className="text-mid">The card was corrupted.</span>{" "}
-                {TEACH_REPEAT.recovery.filesCarved} files were carved off it;
-                only {TEACH_REPEAT.recovery.uniqueFrames} are distinct images.
-                Filenames and timestamps did not survive — and the filename was
-                where the altitude lived.
-              </li>
-              <li>
-                <span className="text-mid">Error is exact anyway.</span> The
-                overlay arrow was drawn at 250 px/m, so it inverts losslessly to
-                metres. Past 40 cm the drawing clamps, so those frames keep only
-                their direction — {frame.id === "f07" ? "this one" : "f07"} is
-                the single clamped frame.
-              </li>
-              <li>
-                <span className="text-mid">Altitude was re-measured.</span> Every
-                surviving half views the same patch of ground from a different
-                height, so the similarity scale between any two of them is their
-                altitude ratio.{" "}
-                {TEACH_REPEAT.recovery.scaleLinks} pairwise links were solved as
-                one least-squares system, median residual{" "}
-                {TEACH_REPEAT.recovery.scaleResidualPct}%.
-              </li>
-              <li>
-                <span className="text-mid">Relative, and said so.</span>{" "}
-                Absolute metres are gone. The ladder is honest ratios against the
-                lowest surviving frame; the frame halves are{" "}
-                {TEACH_REPEAT.intrinsics.width}×{TEACH_REPEAT.intrinsics.height},
-                which is exactly the calibration&apos;s undistorted crop — that
-                is how we know these are untouched onboard output.
-              </li>
-            </ul>
-          </Frame>
         </div>
 
         {/* ── the pipeline ────────────────────────────────────────────── */}

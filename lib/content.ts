@@ -442,7 +442,7 @@ export const WAYPOINTS: Waypoint[] = [
     location: "Waterloo, ON",
     kind: "COMMAND",
     details: [
-      "Lead a 30-member autonomy subteam: contributors organised into parallel project groups, the flight-software backlog scoped into issues sized for onboarding, tracked through to flight readiness for the 2027 AEAC competition.",
+      "Project Manager for a 30-member autonomy subteam: contributors organised into parallel project groups, the flight-software backlog scoped into issues sized for onboarding, tracked through to flight readiness for the 2027 AEAC competition.",
       "Run code review for the autonomy stack and set its architectural direction — the ROS 2 node and message boundaries between the perception, GNC and obstacle-avoidance packages, so work split across groups integrates without rework.",
       "See MSN-02 for the architecture itself.",
     ],
@@ -469,7 +469,7 @@ export const WAYPOINTS: Waypoint[] = [
     location: "Waterloo, ON",
     kind: "OPERATIONS",
     details: [
-      "Built a RESTful command management API (FastAPI, SQLModel) for the satellite ground-station system: CRUD endpoints with request validation, and Loguru-based logging middleware for real-time performance monitoring.",
+      "Implemented CRUD endpoints for the satellite ground-station command API (FastAPI, SQLModel), with request validation and Loguru-based logging middleware for real-time performance monitoring.",
     ],
     tags: ["Python", "FastAPI", "SQLModel", "REST APIs", "Loguru"],
   },
