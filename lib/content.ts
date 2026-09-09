@@ -106,7 +106,7 @@ export const PROFILE = {
     "Computer Engineering at the University of Waterloo. I run the autonomy subteam at the Waterloo Aerial Robotics Group — thirty people, one flight-software stack, and a competition airframe that has to work on the day.",
     "The work I care most about is precision landing without a marker: record what the ground looks like on the way up, match it on the way down, and put the aircraft back where it started. It landed inside 15 cm on the airframe.",
   ],
-  resumeUrl: "/resume.pdf",
+  resumeUrl: "/resumes/Vincent_Zhou_Resume_master.pdf",
 } as const;
 
 /* -------------------------------------------------------------------------- */
