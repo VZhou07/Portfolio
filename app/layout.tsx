@@ -63,7 +63,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             visible behind the intro. Decides once, here, whether the cold-open
             plays at all — reduced motion, deep links and repeat visits skip it.
             The timeout is a failsafe: if the app never hydrates, scrolling is
-            handed back rather than locked forever. */}
+            handed back rather than locked forever. Keep in step with
+            WATCHDOG_MS in lib/intro-profile.ts. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{
@@ -72,7 +73,7 @@ if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
 if(location.hash.length>1)return;
 try{if(sessionStorage.getItem('gcs.booted')==='1')return}catch(e){}
 d.dataset.intro='armed';d.classList.add('gcs-locked');
-setTimeout(function(){if(d.dataset.intro==='armed'){d.removeAttribute('data-intro');d.classList.remove('gcs-locked')}},12000);
+setTimeout(function(){if(d.dataset.intro==='armed'){d.removeAttribute('data-intro');d.classList.remove('gcs-locked')}},24000);
 }catch(e){}})()`,
           }}
         />

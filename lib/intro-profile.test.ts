@@ -3,6 +3,7 @@ import {
   altitudeAt,
   CAM_FLOOR,
   CEILING,
+  descentRateAt,
   DESCENT_MS,
   feedFade,
   frameGrow,
@@ -14,6 +15,7 @@ import {
   postDuration,
   smoothstep,
   VISION_FRACTION,
+  WATCHDOG_MS,
 } from "./intro-profile";
 import { LAND_HANDOFF_M, TEACH_TOP_M } from "./orb-render";
 
@@ -66,7 +68,70 @@ describe("descent profile", () => {
   it("spends real time below the handoff, so touchdown reads as a landing", () => {
     let ms = 0;
     while (ms < DESCENT_MS && altitudeAt(ms) > HANDOFF) ms += 10;
-    expect(DESCENT_MS - ms).toBeGreaterThan(400);
+    expect(DESCENT_MS - ms).toBeGreaterThan(3000);
+  });
+
+  /* The pauses are the manoeuvre. A descent that never stops to re-match is a
+     zoom with numbers on it, so guard the shape, not just the endpoints. */
+  it("holds still several times on the way down", () => {
+    const holds: number[] = [];
+    let run = 0;
+    for (let ms = 0; ms <= DESCENT_MS; ms += 20) {
+      if (descentRateAt(ms) < 0.05) {
+        run += 20;
+      } else {
+        if (run > 0) holds.push(run);
+        run = 0;
+      }
+    }
+    if (run > 0) holds.push(run);
+
+    /* acquire at the ceiling, two re-matches, and the handoff */
+    expect(holds.filter((ms) => ms >= 200).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("stops dead on the handoff height before the autopilot takes it", () => {
+    const at = DESCENT_MS * VISION_FRACTION;
+    expect(altitudeAt(at)).toBeCloseTo(HANDOFF, 6);
+    /* still on it a beat later: that pause is the mode change */
+    expect(altitudeAt(at + 300)).toBeCloseTo(HANDOFF, 6);
+    expect(descentRateAt(at + 200)).toBeCloseTo(0, 6);
+  });
+
+  it("is slow enough to read as a landing rather than a fall", () => {
+    /* the payload camera has to have time to close — an average over 0.8 m/s
+       is still a drop, whatever the easing does */
+    expect((CEILING / DESCENT_MS) * 1000).toBeLessThan(0.8);
+  });
+
+  it("flies the last metre as a slow LAND-mode creep", () => {
+    let ms = 0;
+    while (ms < DESCENT_MS && altitudeAt(ms) > 0.7) ms += 10;
+    expect(altitudeAt(ms)).toBeLessThan(HANDOFF);
+    expect(descentRateAt(ms)).toBeGreaterThan(0.15);
+    expect(descentRateAt(ms)).toBeLessThan(0.45);
+  });
+});
+
+describe("vertical speed", () => {
+  it("is zero before brake release and after touchdown", () => {
+    expect(descentRateAt(0)).toBeCloseTo(0, 6);
+    expect(descentRateAt(-500)).toBeCloseTo(0, 6);
+    expect(descentRateAt(DESCENT_MS + 500)).toBeCloseTo(0, 6);
+  });
+
+  it("accounts for the whole descent, holds included", () => {
+    let travelled = 0;
+    for (let ms = 0; ms < DESCENT_MS; ms += 5) {
+      travelled += descentRateAt(ms + 2.5) * 0.005;
+    }
+    expect(travelled).toBeCloseTo(CEILING, 1);
+  });
+
+  it("never reports a climb", () => {
+    for (let ms = -200; ms <= DESCENT_MS + 200; ms += 25) {
+      expect(descentRateAt(ms)).toBeGreaterThanOrEqual(0);
+    }
   });
 });
 
@@ -100,7 +165,9 @@ describe("ramps", () => {
 
   it("opens the window from framed to fullscreen as it descends", () => {
     expect(frameGrow(CEILING)).toBe(0);
-    expect(frameGrow(6)).toBe(0);
+    /* the bezel tracks the whole descent, so it has already moved at 6 m */
+    expect(frameGrow(6)).toBeGreaterThan(0);
+    expect(frameGrow(6)).toBeLessThan(1);
     expect(frameGrow(3.5)).toBeGreaterThan(0);
     expect(frameGrow(3.5)).toBeLessThan(1);
     expect(frameGrow(1.2)).toBe(1);
@@ -110,9 +177,12 @@ describe("ramps", () => {
   it("clears the HUD before touchdown, so the bang lands on a bare screen", () => {
     expect(hudFade(CEILING)).toBe(1);
     expect(hudFade(1.6)).toBe(1);
-    expect(hudFade(0.6)).toBe(0);
+    expect(hudFade(0.5)).toBe(0);
     expect(hudFade(0)).toBe(0);
-    /* the readouts must be gone before the feed itself starts dissolving */
+    /* the readouts must survive the handoff hold — the mode change is only
+       legible if you can still read the phase — and be gone before the feed
+       itself starts dissolving */
+    expect(hudFade(HANDOFF)).toBe(1);
     expect(hudFade(0.45)).toBe(0);
   });
 
@@ -132,11 +202,15 @@ describe("ramps", () => {
 });
 
 describe("pacing budget", () => {
-  it("reaches the shockwave in about 7.5 s", () => {
+  it("gives the camera time to fly the landing before the shockwave", () => {
     const total = introDuration(POST_LINES);
-    expect(total).toBe(7510);
-    expect(total).toBeGreaterThan(7000);
-    expect(total).toBeLessThan(8000);
+    expect(total).toBe(16810);
+    /* long enough to read as a precision landing, short enough that skip
+       is a courtesy rather than a necessity — and it has to clear the
+       watchdog in intro-stage.tsx / the inline gate */
+    expect(total).toBeGreaterThan(14000);
+    expect(total).toBeLessThan(20000);
+    expect(WATCHDOG_MS).toBeGreaterThan(total + 4000);
   });
 
   it("keeps the self test short relative to the landing", () => {

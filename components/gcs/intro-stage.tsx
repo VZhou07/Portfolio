@@ -9,18 +9,13 @@ import {
   type CSSProperties,
 } from "react";
 import { useFlight } from "@/lib/flight-computer";
+import { WATCHDOG_MS } from "@/lib/intro-profile";
 import { BootSequence } from "./boot-sequence";
 import { LandingIntro } from "./landing-intro";
 
 const SESSION_KEY = "gcs.booted";
 /** How long the deck's punch-in animation needs before the gate can be dropped. */
 const RELEASE_MS = 1100;
-/**
- * Hard deadline. The sequence should reach the reveal in ~7.5 s; if anything
- * stops it getting there, hand the site over anyway rather than trapping the
- * visitor behind an overlay. Mirrors the failsafe in the inline gate.
- */
-const WATCHDOG_MS = 12000;
 
 type Stage = "post" | "flight" | "bang" | "over";
 
@@ -94,7 +89,8 @@ export function IntroStage() {
     markBooted();
   }, [markBooted]);
 
-  /* Failsafe: never leave a visitor stuck behind the overlay. */
+  /* Failsafe: never leave a visitor stuck behind the overlay. WATCHDOG_MS
+     is the same deadline as the inline gate in app/layout.tsx. */
   useEffect(() => {
     if (!armed) return;
     const guard = window.setTimeout(release, WATCHDOG_MS);

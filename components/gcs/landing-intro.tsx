@@ -16,6 +16,7 @@ import {
   CAM_FLOOR,
   CEILING,
   COMPLETE_MS,
+  descentRateAt,
   DESCENT_MS,
   feedFade,
   FRAME_X,
@@ -27,12 +28,18 @@ import {
 } from "@/lib/intro-profile";
 import {
   alignTolerance,
+  autoExposure,
+  cameraPose,
   descentTaper,
   drawOrb,
+  feedFrame,
+  feedTime,
   fitOrbCanvas,
+  hoverHunt,
   modelledMatches,
   repeatOffset,
   teachRungFor,
+  tiltOffset,
   type Surface,
 } from "@/lib/orb-render";
 
@@ -60,6 +67,7 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   const stage = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const altText = useRef<HTMLSpanElement>(null);
+  const vsText = useRef<HTMLSpanElement>(null);
   const phaseText = useRef<HTMLSpanElement>(null);
   const matchText = useRef<HTMLSpanElement>(null);
   const errText = useRef<HTMLSpanElement>(null);
@@ -68,7 +76,8 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   /* flight state lives outside React: it changes every frame */
   const alt = useRef(CEILING);
   const surface = useRef<Surface | null>(null);
-  const lastDrawn = useRef(-1);
+  /** Feed frame last painted — the canvas only redraws when a new one lands. */
+  const lastFrame = useRef(-1);
   /** performance.now() at brake release. 0 until the descent starts. */
   const descentAt = useRef(0);
   /* last written ramp values, so we only touch style when something moved */
@@ -134,7 +143,7 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const remeasure = () => {
       surface.current = fitOrbCanvas(canvas.current);
-      lastDrawn.current = -1;
+      lastFrame.current = -1;
     };
     remeasure();
     window.addEventListener("resize", remeasure);
@@ -145,43 +154,71 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
     };
   }, []);
 
+  /** Altitude the payload camera saw on the feed frame showing at `now`. */
+  const camAltAt = useCallback(
+    (now: number) =>
+      descentAt.current > 0
+        ? altitudeAt(feedTime(now) - descentAt.current)
+        : CEILING,
+    [],
+  );
+
   /* ── the descent. Altitude is a function of time. ─────────────────────── */
   useTelemetry(() => {
+    const now = performance.now();
     if (descentAt.current > 0) {
-      alt.current = altitudeAt(performance.now() - descentAt.current);
+      alt.current = altitudeAt(now - descentAt.current);
     }
+    /* the window and the fades are the page's, so they run at the page's rate */
+    applyRamps(alt.current);
 
-    const a = alt.current;
-    applyRamps(a);
-
-    if (Math.abs(a - lastDrawn.current) < 0.003) return;
-    lastDrawn.current = a;
-
+    /* the image is not. It is a video feed, and it only moves when the next
+       frame comes across the link — altitude, attitude and exposure are all
+       sampled on that clock so the whole picture steps together. */
     const s = surface.current;
-    if (s) {
-      const shown = Math.max(a, CAM_FLOOR);
-      drawOrb(s.ctx, {
-        mode: "repeat",
-        alt: shown,
-        teachAlt: teachRungFor(shown),
-        err: repeatOffset(a),
-        w: s.w,
-        h: s.h,
-        handedOff: handedOff(a),
-      });
-    }
+    if (!s) return;
+    const frame = feedFrame(now);
+    if (frame === lastFrame.current) return;
+    lastFrame.current = frame;
+
+    const t = feedTime(now);
+    const a = camAltAt(now);
+    const shown = Math.max(a, CAM_FLOOR);
+    const drift = repeatOffset(a);
+    const hunt = hoverHunt(t, a);
+    drawOrb(s.ctx, {
+      mode: "repeat",
+      alt: shown,
+      teachAlt: teachRungFor(shown),
+      err: { x: drift.x + hunt.x, y: drift.y + hunt.y },
+      w: s.w,
+      h: s.h,
+      handedOff: handedOff(a),
+      camera: { pose: cameraPose(t, a), exposure: autoExposure(t, a), frame },
+    });
   });
 
   /* ── readouts at 12 Hz: computed from the altitude, not scripted ───────── */
   useTelemetryThrottled(() => {
+    const now = performance.now();
     const a = alt.current;
     const shown = Math.max(a, CAM_FLOOR);
     const rung = teachRungFor(shown);
-    const off = repeatOffset(a);
-    const err = Math.hypot(off.x, off.y);
     const cold = handedOff(a);
+    /* the vision numbers come off the camera, so they see what it sees:
+       the hover's own drift plus however the airframe was leaning */
+    const t = feedTime(now);
+    const drift = repeatOffset(a);
+    const hunt = hoverHunt(t, a);
+    const lean = tiltOffset(cameraPose(t, a), a);
+    const err = Math.hypot(drift.x + hunt.x + lean.x, drift.y + hunt.y + lean.y);
 
     if (altText.current) altText.current.textContent = a.toFixed(2);
+    if (vsText.current) {
+      const vs = descentAt.current > 0 ? descentRateAt(now - descentAt.current) : 0;
+      /* holds are the point of this profile — they have to read as 0.00 */
+      vsText.current.textContent = vs.toFixed(2);
+    }
     if (phaseText.current) phaseText.current.textContent = phaseOf(a);
     if (rungText.current) rungText.current.textContent = rung.toFixed(2);
     if (matchText.current) {
@@ -231,8 +268,17 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
 
         {/* corner overlay — every number computed from altitude */}
         <div className="text-micro absolute inset-x-7 top-1 flex justify-between gap-4">
-          <span className="text-data tnum">
-            AGL <span ref={altText}>7.50</span> m
+          <span className="flex gap-3">
+            <span className="text-signal hidden sm:inline">
+              <span className="gcs-rec">&#9679;</span> REC
+            </span>
+            <span className="text-data tnum">
+              AGL <span ref={altText}>7.50</span> m
+            </span>
+            {/* the holds are only legible if you can watch this fall to zero */}
+            <span className="text-dim tnum">
+              VS &minus;<span ref={vsText}>0.00</span> m/s
+            </span>
           </span>
           <span className="text-signal">
             <span ref={phaseText}>REPEAT</span>
@@ -257,15 +303,17 @@ export function LandingIntro({ onDone }: { onDone: () => void }) {
         </div>
       </div>
 
-      {/* brief scrim — the feed is already live behind the card */}
+      {/* lower-third only — the payload feed is the picture, not a title card */}
       <div
-        className={`bg-void pointer-events-none absolute inset-0 transition-opacity duration-500 ${
-          phase === "brief" ? "opacity-70" : "opacity-0"
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-700 ${
+          phase === "brief" ? "opacity-100" : "opacity-0"
         }`}
-      />
+      >
+        <div className="from-void via-void/55 absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t to-transparent" />
+      </div>
 
       {phase === "brief" && (
-        <div className="absolute inset-0 flex items-center justify-center px-6">
+        <div className="absolute inset-x-0 bottom-[16%] flex justify-center px-6">
           <div className="w-full max-w-2xl text-center">
             <p
               className="gcs-boot-line text-micro text-nominal"

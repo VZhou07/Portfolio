@@ -10,7 +10,7 @@
 import { act, createElement } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { introDuration } from "@/lib/intro-profile";
+import { introDuration, WATCHDOG_MS } from "@/lib/intro-profile";
 
 /** Lines the power-on self test probes — keep in step with intro-profile.test. */
 const POST_LINES = 9;
@@ -215,7 +215,7 @@ describe("arrival sequence", () => {
     await hydrate();
 
     /* the watchdog is the backstop for anything that stalls the timeline */
-    await advance(13000);
+    await advance(WATCHDOG_MS + RELEASE_MS + 200);
     expect(document.documentElement.hasAttribute("data-intro")).toBe(false);
     expect(document.documentElement.classList.contains("gcs-locked")).toBe(false);
     expect(container.innerHTML).toBe("");
