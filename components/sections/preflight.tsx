@@ -11,13 +11,18 @@ const DEF = sectionOf("preflight");
  * Hero. Deliberately not a centred stack: the identity plate is offset left with
  * a vertical section tab, and the live instrument column sits to the right at a
  * different rhythm.
+ *
+ * The hero is NOT pinned to the viewport height. It used to be, back when the
+ * instrument column held two stacked panels that happened to fill it; with one
+ * panel the forced height just pooled dead space under the deck. Height now
+ * follows content.
  */
 export function Preflight() {
   return (
     <section
       id={DEF.id}
       aria-labelledby={`${DEF.id}-title`}
-      className="border-rule gcs-stipple relative border-b px-4 pt-12 pb-16 sm:px-6 sm:pt-16 lg:min-h-[calc(100svh-2.75rem)] lg:px-10"
+      className="border-rule gcs-stipple relative border-b px-4 pt-12 pb-16 sm:px-6 sm:pt-16 lg:px-10"
     >
       <div className="mx-auto w-full max-w-7xl">
         {/* status line */}
@@ -106,7 +111,7 @@ export function Preflight() {
           </div>
 
           {/* ── instruments ────────────────────────────────────────────── */}
-          <div className="gcs-hero-bank grid gap-4 lg:col-span-5 xl:col-span-4">
+          <div className="gcs-hero-bank grid content-start gap-4 lg:col-span-5 xl:col-span-4">
             <Reveal delay={60}>
               <Frame
                 code="ADI"
