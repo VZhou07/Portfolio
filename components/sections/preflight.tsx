@@ -22,7 +22,7 @@ export function Preflight() {
     <section
       id={DEF.id}
       aria-labelledby={`${DEF.id}-title`}
-      className="border-rule gcs-stipple relative border-b px-4 pt-12 pb-16 sm:px-6 sm:pt-16 lg:px-10"
+      className="border-rule relative border-b px-4 pt-12 pb-16 sm:px-6 sm:pt-16 lg:px-10"
     >
       <div className="mx-auto w-full max-w-7xl">
         {/* status line */}

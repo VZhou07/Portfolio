@@ -176,12 +176,6 @@
   );
 }
 
-/* hairline dot texture used behind hero + comms */
-.gcs-stipple {
-  background-image: radial-gradient(#1b2f36 1px, transparent 1px);
-  background-size: 12px 12px;
-}
-
 /* ============================================================================
    MOTION — every keyframe below is either state-gated or user-triggered.
    Nothing loops forever "for atmosphere".
