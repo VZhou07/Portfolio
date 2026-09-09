@@ -1,7 +1,7 @@
 /* ============================================================================
    DERIVED DATA
    ----------------------------------------------------------------------------
-   Nothing in the UI hand-waves a number. Skill levels, radar contact positions
+   Nothing in the UI hand-waves a number. Skill levels, domain bearings
    and dossier stats are all computed from MISSIONS, so editing content.ts moves
    the instruments.
    ========================================================================== */
@@ -182,9 +182,7 @@ export const SKILL_PEAK = Math.max(
 );
 
 /* -------------------------------------------------------------------------- */
-/* RADAR CONTACTS                                                             */
-/* bearing  = engineering domain (fixed sectors, so the scope reads as a map)  */
-/* range    = position in the mission list (index 0 = most recent = closest)   */
+/* DOMAIN BEARINGS — fixed sectors, so every domain readout shares a compass   */
 /* -------------------------------------------------------------------------- */
 
 const DOMAIN_BEARING: Record<Domain, number> = {
@@ -194,28 +192,6 @@ const DOMAIN_BEARING: Record<Domain, number> = {
   "MACHINE LEARNING": 212,
   "FULL-STACK": 292,
 };
-
-export interface Contact {
-  mission: Mission;
-  /** Degrees clockwise from scope north. */
-  bearing: number;
-  /** 0 (centre) .. 1 (scope edge). */
-  range: number;
-}
-
-export const CONTACTS: Contact[] = MISSIONS.map((mission, i) => {
-  const sector = DOMAIN_BEARING[mission.domain];
-  /* Spread same-domain contacts deterministically so none overlap. */
-  const siblings = MISSIONS.filter((m) => m.domain === mission.domain);
-  const ordinal = siblings.findIndex((m) => m.id === mission.id);
-  const spread = (ordinal - (siblings.length - 1) / 2) * 17;
-
-  return {
-    mission,
-    bearing: (sector + spread + 360) % 360,
-    range: 0.32 + (i / Math.max(1, TOTAL_MISSIONS - 1)) * 0.58,
-  };
-});
 
 /* -------------------------------------------------------------------------- */
 /* DOSSIER STATS                                                              */

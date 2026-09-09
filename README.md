@@ -141,7 +141,7 @@ lib/
   sim-render.ts        canvas renderer for the AprilTag SITL viewports
 components/
   gcs/                 HUD chrome: nav rail, telemetry strip, arrival sequence,
-                       attitude indicator, radar scope, panel primitives
+                       attitude indicator, panel primitives
   sections/            the eight sections
 ```
 
@@ -158,11 +158,6 @@ components/
   thumb-reachable bar on touch. The drone is the position indicator — it is
   interpolated between waypoints from real scroll progress and leaves a fading
   flight path. Digits `1`–`8` slew between sections.
-- **Radar scope** (`gcs/radar-scope.tsx`) plots the missions as contacts: bearing
-  is the engineering domain, range is position in the log, and each contact is a
-  real button. It is **not currently mounted** — the hero was trimmed to the
-  attitude indicator alone. The component and its `CONTACTS` data in `derive.ts`
-  are intact if you want it back, or somewhere else.
 - **Teach & repeat (04)** opens with a looping simulated descent laid out as the
   same `TEACH | REPEAT` pair the recovered frames use, so the idea and the
   evidence read as one thing — the keypoint count, the alignment cone and the
@@ -191,5 +186,5 @@ tab-reachable, labelled and validated form fields with `aria-invalid` +
 `aria-describedby`, one live region per interactive area, and body/label text at
 4.5:1 or better on the dark deck. The frame ladder is arrow-key steppable and
 announces the selected frame's numbers through a live region.
-`prefers-reduced-motion` disables the arrival sequence, the radar sweep, the
-drone trail, ladder auto-play and video autoplay.
+`prefers-reduced-motion` disables the arrival sequence, the drone trail, ladder
+auto-play and video autoplay.
