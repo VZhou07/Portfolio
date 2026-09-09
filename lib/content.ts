@@ -465,7 +465,7 @@ export const WAYPOINTS: Waypoint[] = [
   {
     role: "Software Developer",
     org: "UW Orbital — Waterloo Satellite Design Team",
-    dates: "Sept 2025 – Apr 2026",
+    dates: "Jan 2026 – May 2026",
     location: "Waterloo, ON",
     kind: "OPERATIONS",
     details: [
