@@ -1,6 +1,6 @@
 import { AttitudeIndicator } from "@/components/gcs/attitude-indicator";
 import { JumpButton, LocalClock } from "@/components/gcs/controls";
-import { Frame, LinkChip, MicroLabel, Rule } from "@/components/gcs/primitives";
+import { Frame, LinkChip, Rule } from "@/components/gcs/primitives";
 import { Reveal } from "@/components/gcs/reveal";
 import { PROFILE, SECTIONS, sectionOf } from "@/lib/content";
 import { FLEET } from "@/lib/derive";
@@ -54,8 +54,20 @@ export function Preflight() {
                   </span>
                 </div>
 
-                <div className="gcs-hero-plate min-w-0 flex-1">
-                  <MicroLabel className="mb-3">OPERATOR</MicroLabel>
+                {/* Same Frame silhouette as the ADI — opaque panel so the grid
+                    does not cut through the name and lede. */}
+                <Frame
+                  code="ID"
+                  title="OPERATOR"
+                  tone="data"
+                  aside={
+                    <span className="text-micro text-dim tnum">
+                      {PROFILE.callsign}
+                    </span>
+                  }
+                  className="gcs-hero-plate min-w-0 flex-1"
+                  bodyClassName="p-4 sm:p-5"
+                >
                   <h1
                     id={`${DEF.id}-title`}
                     className="font-display text-h1 text-ink mb-4 tracking-tight break-words"
@@ -67,46 +79,42 @@ export function Preflight() {
                     {PROFILE.title}
                   </p>
                   <p className="text-dim text-data max-w-2xl">{PROFILE.tagline}</p>
-                </div>
-              </div>
-            </Reveal>
 
-            {/* at-a-glance, all computed from the mission log */}
-            <Reveal delay={90}>
-              <dl className="border-rule mt-8 grid grid-cols-2 gap-px border sm:grid-cols-4">
-                {[
-                  { k: "LOCATION", v: PROFILE.location },
-                  { k: "SORTIES", v: String(FLEET.missions) },
-                  { k: "VERIFIED", v: `${FLEET.verified}/${FLEET.missions}` },
-                  { k: "ACTIVE", v: String(FLEET.active) },
-                ].map((cell) => (
-                  <div key={cell.k} className="bg-panel/60 px-3 py-3">
-                    <dt className="text-micro text-dim mb-1">{cell.k}</dt>
-                    <dd className="font-display text-data text-h3 truncate">
-                      {cell.v}
-                    </dd>
+                  {/* at-a-glance, all computed from the mission log */}
+                  <dl className="border-rule mt-6 grid grid-cols-2 gap-px border sm:grid-cols-4">
+                    {[
+                      { k: "LOCATION", v: PROFILE.location },
+                      { k: "SORTIES", v: String(FLEET.missions) },
+                      { k: "VERIFIED", v: `${FLEET.verified}/${FLEET.missions}` },
+                      { k: "ACTIVE", v: String(FLEET.active) },
+                    ].map((cell) => (
+                      <div key={cell.k} className="bg-panel-hi/40 px-3 py-3">
+                        <dt className="text-micro text-dim mb-1">{cell.k}</dt>
+                        <dd className="font-display text-data text-h3 truncate">
+                          {cell.v}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <JumpButton to="missions">OPEN MISSION LOG</JumpButton>
+                    <JumpButton to="teach-repeat" variant="ghost">
+                      SEE THE LANDING
+                    </JumpButton>
+                    <JumpButton to="comms" variant="ghost">
+                      OPEN COMMS
+                    </JumpButton>
+                    <LinkChip label="RESUME" href={PROFILE.resumeUrl} tone="data" />
                   </div>
-                ))}
-              </dl>
-            </Reveal>
 
-            <Reveal delay={150}>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <JumpButton to="missions">OPEN MISSION LOG</JumpButton>
-                <JumpButton to="teach-repeat" variant="ghost">
-                  SEE THE LANDING
-                </JumpButton>
-                <JumpButton to="comms" variant="ghost">
-                  OPEN COMMS
-                </JumpButton>
-                <LinkChip label="RESUME" href={PROFILE.resumeUrl} tone="data" />
+                  <p className="text-micro text-dim mt-5">
+                    PRESS <span className="text-signal">1</span>–
+                    <span className="text-signal">{SECTIONS.length}</span> TO SLEW ·
+                    SCROLL TO DESCEND · THE DRONE ON THE RAIL IS YOUR POSITION
+                  </p>
+                </Frame>
               </div>
-
-              <p className="text-micro text-dim mt-5">
-                PRESS <span className="text-signal">1</span>–
-                <span className="text-signal">{SECTIONS.length}</span> TO SLEW ·
-                SCROLL TO DESCEND · THE DRONE ON THE RAIL IS YOUR POSITION
-              </p>
             </Reveal>
           </div>
 
