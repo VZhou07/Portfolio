@@ -428,6 +428,43 @@ export const MISSIONS: Mission[] = [
       { label: "REPO · Neural-Network", href: "https://github.com/VZhou07/Neural-Network" },
     ],
   },
+  {
+    id: "msn-09",
+    name: "MacroMe",
+    subtitle: "2ND PLACE · WEBAGENT TRACK · BATTLE OF THE SCHOOLS",
+    status: "COMPLETE",
+    verified: true,
+    airborne: false,
+    domain: "FULL-STACK",
+    org: "Battle of the Schools · UTMIST × Wat.ai",
+    window: "Hackathon project",
+    stack: [
+      "TypeScript",
+      "Node.js",
+      "Steel",
+      "Playwright",
+      "OpenRouter",
+      "SQLite FTS5",
+      "SQL",
+      "MCP",
+      "REST APIs",
+    ],
+    brief:
+      "An autonomous web agent that turns macro targets, food preferences and a budget into a DoorDash cart. It navigates menus in Steel cloud browsers with Playwright, uses LLM-guided meal selection, and asks for human approval before checkout. Our team earned second place in the WebAgent track at Battle of the Schools.",
+    log: [
+      "Built the TypeScript/Node.js app and browser-agent workflow: scheduled meal runs open a Steel cloud browser, compare restaurant menus, assemble a cart and present it in a dashboard for approval.",
+      "Integrated OpenRouter for meal selection, constrained model outputs to real scraped menu IDs, validated combined prices against the budget, and ranked candidates by weighted distance from the user's macro targets.",
+      "Used SQLite FTS5 to retrieve USDA nutrition records by food name, with similarity scoring to select matches and labeled estimates when no suitable record was found.",
+      "Built a custom Model Context Protocol (MCP) server exposing daily macro summaries, saved digests and email delivery to AI assistants.",
+      "Persisted meal lifecycle state with atomic JSON writes, coordinated scheduler ownership through an exclusive process lock, and reconciled missed meals after restarts without ordering them late.",
+    ],
+    impact:
+      "2nd place in the WebAgent track at Battle of the Schools, organised by UTMIST and Wat.ai. The hackathon build connects AI meal selection to a real browser workflow, with nutrition lookup, persistent scheduling and human approval before checkout.",
+    links: [
+      { label: "REPO · MacroMe", href: "https://github.com/VZhou07/MacroMe" },
+      { label: "DEVPOST", href: "https://devpost.com/software/macrome-xm5c3r" },
+    ],
+  },
 ];
 
 /* -------------------------------------------------------------------------- */

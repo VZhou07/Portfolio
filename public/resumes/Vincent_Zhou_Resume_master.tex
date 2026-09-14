@@ -1,0 +1,82 @@
+% Standalone source reconstructed from the corresponding resume PDF.
+% Compile with pdfLaTeX; include the GitHub PNG beside this file in Overleaf.
+\documentclass[10pt,letterpaper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage[left=0.45in,right=0.45in,top=0.30in,bottom=0.30in]{geometry}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{fontawesome5}
+\definecolor{linkblue}{HTML}{155E91}
+\usepackage[colorlinks=true,urlcolor=linkblue,linkcolor=linkblue]{hyperref}
+\newcommand{\githubmark}{\includegraphics[height=9pt]{GitHub_Invertocat_Black.png}}
+\newcommand{\projectlink}[1]{\nobreak\hspace{4pt}\href{#1}{\raisebox{-1pt}{\githubmark}}}
+\newcommand{\inlinelink}[2]{\href{#1}{\textbf{#2}\,\raisebox{0.2ex}{\fontsize{6}{6}\selectfont\faIcon{external-link-alt}}}}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{3em}
+\tolerance=2000
+\setlist[itemize]{leftmargin=10.5pt,labelsep=3pt,itemsep=0pt,parsep=0pt,topsep=1pt,partopsep=0pt}
+\newcommand{\resumesection}[1]{\par\vspace{5pt}{\bfseries\fontsize{10.5}{11}\selectfont #1}\par\vspace{1pt}\hrule\vspace{3pt}}
+\begin{document}
+\fontsize{10}{10.8}\selectfont
+\begin{center}
+{\fontsize{19}{21}\selectfont\bfseries Vincent Zhou}\\[2pt]
+\href{mailto:v23zhou@uwaterloo.ca}{v23zhou@uwaterloo.ca}
+\,|\, 1-(437) 980-9728
+\,|\, \href{https://vincentzhou.tech}{\underline{vincentzhou.tech}\,\faIcon{external-link-alt}}
+\,|\, \href{https://github.com/VZhou07}{\raisebox{-1pt}{\githubmark}\,\underline{github.com/VZhou07}}
+\end{center}
+\vspace{-8pt}
+\resumesection{EDUCATION}
+\textbf{University of Waterloo}\hfill \textbf{Sept 2025 -- June 2030}\par
+\textit{Bachelor of Applied Science, Computer Engineering, Honours Co-op}\par
+\resumesection{EXPERIENCE}
+\textbf{Waterloo Aerial Robotics Group (WARG)}\par
+\textit{Autonomy Project Manager}\hfill \textit{Sept 2026 -- Present}\par
+\begin{itemize}
+\item Lead a \textbf{30-member} autonomy subteam, organizing contributors into parallel project groups, scoping the flight-software backlog into issues sized for onboarding, and tracking them through to flight readiness for the 2027 AEAC competition.
+\item Run code review for the autonomy stack and set its architectural direction, defining the ROS 2 node and message boundaries between the perception, GNC, and obstacle-avoidance packages so work split across groups integrates without rework.
+\end{itemize}
+\textit{Software Engineering Intern}\hfill \textit{May 2026 -- Sept 2026}\par
+\begin{itemize}
+\item Independently designed, built, and flight-tested a \inlinelink{https://github.com/UWARG/autonomy-monorepo/tree/non-optimal-targets}{visual teach-and-repeat} precision-landing system (\textbf{ROS 2}, \textbf{OpenCV}, \textbf{MAVROS}) that records an altitude-keyed map of \textbf{ORB} features during takeoff, then on descent matches live frames against the nearest teach frame using Lowe-ratio-filtered kNN matching, metric back-projection with roll/pitch compensation, and \textbf{RANSAC} affine estimation to guide the drone back onto its launch point, landing within \textbf{15 cm in flight test} and \textbf{2 cm in simulation}.
+\item Validated the descent controller in isolation against an \inlinelink{https://github.com/UWARG/autonomy-monorepo/pull/73}{AprilTag fiducial baseline} first, confirming landings on the marker before substituting feature-based localization, so control and perception failures could be diagnosed separately.
+\item Hardened the pipeline against field failure modes: an altitude-proportional alignment cone that tapers descent authority with match quality, a stale-vision recovery state machine that climbs to widen the camera footprint and re-acquire, teach-frame keypoint gating, and inlier-ratio and scale validation to reject degenerate transforms.
+\item Deployed on an \textbf{NVIDIA Jetson} with a \textbf{CUDA} brute-force matcher (CPU fallback) inside a \textbf{10 Hz} control loop; wrote the Arducam V4L2 driver, \texttt{systemd} service, and \textbf{Bash} provisioning scripts, and handed off touchdown to \textbf{ArduPilot}'s \texttt{LAND} mode with debounced ground confirmation.
+\item Architected a full-stack, real-time \inlinelink{https://github.com/UWARG/Auto-AEAC-2026-Task-1-MVP/tree/UI-improvement-scaffold}{UAV geolocation platform} (\textbf{React/TypeScript} frontend, \textbf{Flask} REST API) for the 2026 AEAC Firefighting Competition, enabling ground operators to capture, annotate, and geolocate targets spotted mid-flight using a pinhole camera model and ray--plane intersection against live telemetry to localize targets in 3D to \textbf{\textless{}0.5 m}.
+\end{itemize}
+\resumesection{PROJECTS}
+\textbf{SITL-Plus} | \textit{UAV Software-in-the-Loop Simulator, WARG}\projectlink{https://github.com/UWARG/autonomy-monorepo/tree/non-optimal-targets/SITL-Plus}\par
+\begin{itemize}
+\item Built a from-scratch simulator using \textbf{PyBullet} rigid-body physics to model a quadcopter's flight dynamics, bridged to \textbf{ArduPilot}'s SITL binary over a \textbf{UDP} JSON protocol for high-rate physics/flight-controller state exchange.
+\item Simulated onboard sensors: downward and forward RGB-D cameras via PyBullet's OpenGL renderer and a ray-cast rangefinder/LiDAR, streamed to \textbf{Rerun} over \textbf{gRPC} for live 3D visualization, enabling integration testing of the vision and precision-landing pipelines without physical hardware.
+\item Containerized the stack (physics engine + ArduPilot SITL/MAVProxy) with \textbf{Docker Compose}, covered the sensor and dynamics models with a \textbf{pytest} suite, and used the simulator to validate and tune the precision-landing pipeline to \textbf{2 cm} before committing to flight tests.
+\end{itemize}
+\textbf{MacroMe} | \textit{AI Meal-Ordering Agent}\hfill \textbf{2nd Place, WebAgent Track}\projectlink{https://github.com/VZhou07/MacroMe}\par
+\textit{Battle of the Schools (UTMIST $\times$ Wat.ai)}\par
+\begin{itemize}
+\item Built an \textbf{autonomous web agent} in \textbf{TypeScript/Node.js} that uses \textbf{Steel cloud browsers} and \textbf{Playwright} to navigate DoorDash, compare menus, and assemble meal carts with \textbf{LLM-guided selection} and human approval before checkout.
+\item Integrated \textbf{OpenRouter} for constrained meal selection, validated model outputs against scraped menu IDs and budgets, and ranked candidates by macro fit using \textbf{SQLite FTS5} retrieval over USDA nutrition data, with labeled estimates when no match was found.
+\end{itemize}
+\textbf{Classly} | \textit{Classroom Management Platform: React 19, Node.js/Express 5, TypeScript}\projectlink{https://github.com/VZhou07/Classly}\par
+\begin{itemize}
+\item Built a full-stack school management platform with a \textbf{Postgres/Drizzle ORM} schema, role-based access control (admin/teacher/student), \textbf{Better-Auth} session authentication (email/password, Google/GitHub OAuth), and invite-based onboarding over cryptographically secure tokens.
+\item Migrated the backend off a long-running \textbf{Render} container onto \textbf{Cloudflare Workers} with serverless Postgres over WebSockets, scoping connection-pool lifetime to the request to fix pools leaking across transactions, and added a cron-triggered session-cleanup job.
+\item Hardened the API with \textbf{Arcjet} bot detection and rate limiting, parameterized queries, and row-level locking with transactional rollback to prevent race conditions during concurrent enrollment.
+\end{itemize}
+\textbf{Neural Network From Scratch} | \textit{C++, Eigen}\projectlink{https://github.com/VZhou07/Neural-Network}\par
+\begin{itemize}
+\item Implemented a multilayer perceptron from scratch with no ML framework, deriving forward and backpropagation by hand, with mini-batch SGD and early stopping that checkpoints the best weights on validation plateaus, reaching \textbf{95.4\%} test accuracy on MNIST.
+\end{itemize}
+\resumesection{SKILLS}
+\begin{itemize}
+\item \textbf{Languages:} Python, C++, TypeScript/JavaScript, Java, SQL, Bash, Lua, Verilog
+\item \textbf{Robotics \& Vision:} ROS 2, ArduPilot/MAVROS, MAVLink, OpenCV, CUDA, PyBullet, Rerun, NumPy, Eigen, NVIDIA Jetson, Raspberry Pi
+\item \textbf{Backend \& Data:} FastAPI, Flask, Node.js/Express, REST, PostgreSQL, Drizzle ORM, Neon, Pydantic, Zod
+\item \textbf{Infrastructure \& Testing:} Docker, Cloudflare Workers/Pages, Wrangler, Git/GitHub, GitHub Actions CI, Linux/\texttt{systemd}, pytest, Vitest, Quartus/FPGA
+\end{itemize}
+\end{document}
