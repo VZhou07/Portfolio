@@ -19,7 +19,7 @@ export function Dossier() {
         </span>
       }
     >
-      <div className="grid gap-4 lg:grid-cols-12">
+      <div className="grid items-start gap-4 lg:grid-cols-12">
         {/* ── narrative ─────────────────────────────────────────────────── */}
         <Reveal className="lg:col-span-7">
           <Frame code="DSR" title="OPERATOR DOSSIER" tone="signal" bodyClassName="p-4 sm:p-6">
@@ -60,27 +60,25 @@ export function Dossier() {
           </Frame>
         </Reveal>
 
-        {/* ── measured summary ──────────────────────────────────────────── */}
-        <div className="grid gap-4 lg:col-span-5">
+        {/* ── programmes and domains ────────────────────────────────────── */}
+        <div className="grid content-start gap-3 lg:col-span-5">
           <Reveal delay={70}>
-            <Frame code="FLT" title="LOG SUMMARY" tone="data">
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
-                {[
-                  { k: "SORTIES LOGGED", v: FLEET.missions, tone: "text-data" },
-                  { k: "VERIFIED", v: FLEET.verified, tone: "text-nominal" },
-                  { k: "IN PROGRESS", v: FLEET.active, tone: "text-caution" },
-                  { k: "STACK DEPTH", v: FLEET.stackDepth, tone: "text-signal" },
-                ].map((s) => (
-                  <div key={s.k}>
-                    <dt className="text-micro text-dim mb-1">{s.k}</dt>
-                    <dd className={`font-display text-readout tnum ${s.tone}`}>
-                      {s.v.toString().padStart(2, "0")}
-                    </dd>
-                  </div>
+            <Frame code="ORG" title="PROGRAMMES" tone="dim">
+              <ul className="text-data text-mid space-y-1.5">
+                {orgs.map((o) => (
+                  <li key={o} className="flex items-baseline gap-2">
+                    <span aria-hidden="true" className="text-signal">
+                      ▸
+                    </span>
+                    {o}
+                  </li>
                 ))}
-              </dl>
-              <p className="text-micro text-dim mt-4 leading-relaxed">
-                COUNTED FROM THE MISSION LOG BELOW — NOT HAND-WRITTEN
+              </ul>
+              <MicroLabel className="mt-4">MOST-USED TOOLING</MicroLabel>
+              <p className="text-data text-dim mt-1">
+                {STACK_INDEX.slice(0, 5)
+                  .map((s) => `${s.token} (${s.count})`)
+                  .join(" · ")}
               </p>
             </Frame>
           </Reveal>
@@ -105,27 +103,6 @@ export function Dossier() {
                   </li>
                 ))}
               </ul>
-            </Frame>
-          </Reveal>
-
-          <Reveal delay={190}>
-            <Frame code="ORG" title="PROGRAMMES" tone="dim">
-              <ul className="text-data text-mid space-y-1.5">
-                {orgs.map((o) => (
-                  <li key={o} className="flex items-baseline gap-2">
-                    <span aria-hidden="true" className="text-signal">
-                      ▸
-                    </span>
-                    {o}
-                  </li>
-                ))}
-              </ul>
-              <MicroLabel className="mt-4">MOST-USED TOOLING</MicroLabel>
-              <p className="text-data text-dim mt-1">
-                {STACK_INDEX.slice(0, 5)
-                  .map((s) => `${s.token} (${s.count})`)
-                  .join(" · ")}
-              </p>
             </Frame>
           </Reveal>
         </div>
