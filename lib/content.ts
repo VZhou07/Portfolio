@@ -103,7 +103,7 @@ export const PROFILE = {
   homeLat: 43.4723,
   homeLon: -80.5449,
   about: [
-    "Computer Engineering at the University of Waterloo. I run the autonomy subteam at the Waterloo Aerial Robotics Group — thirty people, one flight-software stack, and a competition airframe that has to work on the day.",
+    "Computer Engineering at the University of Waterloo. Project Manager for the autonomy subteam at the Waterloo Aerial Robotics Group — coordinating about thirty contributors across one flight-software stack toward a competition airframe that has to work on the day.",
     "The work I care most about is precision landing without a marker: record what the ground looks like on the way up, match it on the way down, and put the aircraft back where it started. It landed inside 15 cm on the airframe.",
   ],
   resumeUrl: "/resumes/Vincent_Zhou_Resume_master.pdf",
@@ -187,34 +187,6 @@ export const MISSIONS: Mission[] = [
       },
     ],
     hasFootage: true,
-  },
-  {
-    id: "msn-02",
-    name: "AUTONOMY STACK · ARCHITECTURE & REVIEW",
-    subtitle: "30-PERSON SUBTEAM, ONE FLIGHT-SOFTWARE STACK",
-    status: "IN PROGRESS",
-    verified: true,
-    airborne: true,
-    domain: "AUTONOMY",
-    org: "UWARG · Autonomy",
-    window: "Sept 2026 – Present",
-    stack: ["Python", "ROS 2", "MAVLink", "Git / CI", "Docker"],
-    brief:
-      "Running the autonomy subteam: thirty contributors split into parallel project groups, a flight-software backlog scoped into issues small enough to onboard on, and an architecture that lets those groups land work without stepping on each other.",
-    log: [
-      "Set the ROS 2 node and message boundaries between the perception, GNC and obstacle-avoidance packages, so work split across groups integrates instead of being rewritten at merge time.",
-      "Run code review for the stack — the architectural decisions and the review bar are mine to hold.",
-      "Scoped the backlog into issues sized for onboarding, and track them through to flight readiness for the 2027 AEAC competition.",
-      "Organised contributors into parallel project groups so several efforts can run at once against one shared airframe and one shared simulator.",
-    ],
-    impact:
-      "Thirty people can ship into the same flight-software stack because the interfaces between their packages are decided up front rather than negotiated in review.",
-    links: [
-      {
-        label: "REPO · autonomy-monorepo",
-        href: "https://github.com/UWARG/autonomy-monorepo",
-      },
-    ],
   },
   {
     id: "msn-03",
@@ -479,11 +451,10 @@ export const WAYPOINTS: Waypoint[] = [
     location: "Waterloo, ON",
     kind: "COMMAND",
     details: [
-      "Project Manager for a 30-member autonomy subteam: contributors organised into parallel project groups, the flight-software backlog scoped into issues sized for onboarding, tracked through to flight readiness for the 2027 AEAC competition.",
-      "Run code review for the autonomy stack and set its architectural direction — the ROS 2 node and message boundaries between the perception, GNC and obstacle-avoidance packages, so work split across groups integrates without rework.",
-      "See MSN-02 for the architecture itself.",
+      "Project-manage a ~30-person autonomy subteam: organise contributors into parallel project groups, break the flight-software backlog into onboarding-sized issues, and track delivery toward flight readiness for the 2027 AEAC competition.",
+      "Coordinate integration across perception, GNC, and obstacle-avoidance workstreams — keep package interfaces and review expectations aligned so parallel efforts merge cleanly into one stack.",
     ],
-    tags: ["ROS 2", "Code Review", "Architecture", "Technical Leadership"],
+    tags: ["ROS 2", "Project Management", "Code Review", "Coordination"],
   },
   {
     role: "Software Engineering Intern",
