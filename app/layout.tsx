@@ -20,6 +20,14 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ||
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : "http://localhost:3000"),
+  ),
   title: `${PROFILE.name} — Flight Ops Portfolio`,
   description:
     "Ground control station for the engineering work of " +
@@ -38,6 +46,11 @@ export const metadata: Metadata = {
     title: `${PROFILE.name} — Flight Ops Portfolio`,
     description: PROFILE.tagline,
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${PROFILE.name} — Flight Ops Portfolio`,
+    description: PROFILE.tagline,
   },
 };
 
