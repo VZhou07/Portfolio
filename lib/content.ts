@@ -451,10 +451,11 @@ export const WAYPOINTS: Waypoint[] = [
     location: "Waterloo, ON",
     kind: "COMMAND",
     details: [
-      "Project-manage a ~30-person autonomy subteam: organise contributors into parallel project groups, break the flight-software backlog into onboarding-sized issues, and track delivery toward flight readiness for the 2027 AEAC competition.",
-      "Coordinate integration across perception, GNC, and obstacle-avoidance workstreams — keep package interfaces and review expectations aligned so parallel efforts merge cleanly into one stack.",
+      "Coordinate a ~30-person autonomy subteam toward the 2027 AEAC competition, scoping tasks and aligning integration across perception, GNC and obstacle avoidance.",
+      "Lead Groundside architecture and development for UWARG’s multi-drone scanning project: a central coordinator that plans coverage, assigns missions and tracks progress across a distributed fleet. The initial target is a shared 2D orthomosaic, with 3D reconstruction planned later.",
+      "Define communication protocols and fleet-state interfaces, scope implementation tasks, review PRs and coordinate integration, including command acknowledgments and disconnect handling.",
     ],
-    tags: ["ROS 2", "Project Management", "Code Review", "Coordination"],
+    tags: ["Python", "System Architecture", "Project Management", "Code Review"],
   },
   {
     role: "Software Engineering Intern",

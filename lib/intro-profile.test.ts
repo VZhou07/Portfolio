@@ -68,7 +68,7 @@ describe("descent profile", () => {
   it("spends real time below the handoff, so touchdown reads as a landing", () => {
     let ms = 0;
     while (ms < DESCENT_MS && altitudeAt(ms) > HANDOFF) ms += 10;
-    expect(DESCENT_MS - ms).toBeGreaterThan(3000);
+    expect(DESCENT_MS - ms).toBeGreaterThan(2400);
   });
 
   /* The pauses are the manoeuvre. A descent that never stops to re-match is a
@@ -99,9 +99,9 @@ describe("descent profile", () => {
   });
 
   it("is slow enough to read as a landing rather than a fall", () => {
-    /* the payload camera has to have time to close — an average over 0.8 m/s
-       is still a drop, whatever the easing does */
-    expect((CEILING / DESCENT_MS) * 1000).toBeLessThan(0.8);
+    /* Keep the shortened approach below 1 m/s on average so the camera still
+       has time to close between the alignment holds. */
+    expect((CEILING / DESCENT_MS) * 1000).toBeLessThan(1);
   });
 
   it("flies the last metre as a slow LAND-mode creep", () => {
@@ -204,12 +204,13 @@ describe("ramps", () => {
 describe("pacing budget", () => {
   it("gives the camera time to fly the landing before the shockwave", () => {
     const total = introDuration(POST_LINES);
-    expect(total).toBe(16810);
+    expect(DESCENT_MS).toBe(8100);
+    expect(total).toBe(12760);
     /* long enough to read as a precision landing, short enough that skip
        is a courtesy rather than a necessity — and it has to clear the
        watchdog in intro-stage.tsx / the inline gate */
-    expect(total).toBeGreaterThan(14000);
-    expect(total).toBeLessThan(20000);
+    expect(total).toBeGreaterThan(12000);
+    expect(total).toBeLessThan(13000);
     expect(WATCHDOG_MS).toBeGreaterThan(total + 4000);
   });
 

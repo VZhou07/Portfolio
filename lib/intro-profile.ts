@@ -109,16 +109,16 @@ function shape(ease: Ease, t: number): number {
  * reads as a zoom rather than as a landing.
  */
 const APPROACH: readonly { ms: number; to: number; ease: Ease }[] = [
-  { ms: 1000, to: CEILING, ease: "hold" } /* acquire — watch the hover breathe */,
-  { ms: 1800, to: 5.4, ease: "fall" },
-  { ms: 700, to: 5.4, ease: "hold" } /* re-match, close the cone */,
-  { ms: 1800, to: 3.1, ease: "fall" },
-  { ms: 700, to: 3.1, ease: "hold" },
-  { ms: 1500, to: 1.55, ease: "fall" },
-  { ms: 900, to: HANDOFF, ease: "settle" } /* arrive on the handoff height */,
-  { ms: 650, to: HANDOFF, ease: "hold" } /* vision cold, LAND taking it */,
-  { ms: 2200, to: 0.34, ease: "creep" } /* LAND mode, a slow commanded VZ */,
-  { ms: 900, to: 0, ease: "contact" },
+  { ms: 650, to: CEILING, ease: "hold" } /* acquire — watch the hover breathe */,
+  { ms: 1200, to: 5.4, ease: "fall" },
+  { ms: 450, to: 5.4, ease: "hold" } /* re-match, close the cone */,
+  { ms: 1200, to: 3.1, ease: "fall" },
+  { ms: 450, to: 3.1, ease: "hold" },
+  { ms: 1000, to: 1.55, ease: "fall" },
+  { ms: 600, to: HANDOFF, ease: "settle" } /* arrive on the handoff height */,
+  { ms: 450, to: HANDOFF, ease: "hold" } /* vision cold, LAND taking it */,
+  { ms: 1500, to: 0.34, ease: "creep" } /* LAND mode, a slow commanded VZ */,
+  { ms: 600, to: 0, ease: "contact" },
 ];
 
 interface Leg {
