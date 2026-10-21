@@ -1,6 +1,6 @@
 # Vincent Zhou — Flight Ops Portfolio
 
-A single-page portfolio built as a drone ground control station. Dark cockpit
+A single-page interactive portfolio built as a drone ground control station. Dark cockpit
 deck, amber primary signal, cyan live data. Every readout on the page is measured
 from something real — scroll kinematics, device state, the mission list, or the
 recovered flight data — and every animation is driven by scroll position,
