@@ -5,6 +5,7 @@ import { MicroLabel } from "@/components/gcs/primitives";
 import { Section } from "@/components/gcs/section";
 import { sectionOf, sectionSlot, WAYPOINTS } from "@/lib/content";
 import { clamp } from "@/lib/derive";
+import { GroundsideCaseStudy } from "@/components/sections/groundside-case-study";
 import { useTelemetry } from "@/lib/flight-computer";
 
 const DEF = sectionOf("waypoints");
@@ -160,6 +161,7 @@ export function Waypoints() {
                   </ul>
                 </>
               )}
+              {wp.caseStudy === "groundside" && <GroundsideCaseStudy />}
             </div>
           </li>
         ))}

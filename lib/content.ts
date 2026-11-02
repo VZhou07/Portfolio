@@ -56,6 +56,7 @@ export interface Mission {
 }
 
 export interface Waypoint {
+  caseStudy?: "groundside";
   role: string;
   org: string;
   dates: string;
@@ -450,12 +451,14 @@ export const WAYPOINTS: Waypoint[] = [
     dates: "Sept 2026 – Present",
     location: "Waterloo, ON",
     kind: "COMMAND",
+    caseStudy: "groundside",
     details: [
-      "Coordinate a ~30-person autonomy subteam toward the 2027 AEAC competition, scoping tasks and aligning integration across perception, GNC and obstacle avoidance.",
+      "Coordinate a ~30-person autonomy subteam toward the 2027 AEAC competition: scope contributor tasks, review code and align integration across perception, GNC and obstacle avoidance.",
       "Lead Groundside architecture and development for UWARG’s multi-drone scanning project: a central coordinator that plans coverage, assigns missions and tracks progress across a distributed fleet. The initial target is a shared 2D orthomosaic, with 3D reconstruction planned later.",
-      "Define communication protocols and fleet-state interfaces, scope implementation tasks, review PRs and coordinate integration, including command acknowledgments and disconnect handling.",
+      "Own groundside MVP scope and component boundaries: define fleet registration, command acknowledgments, availability and image-ingestion contracts, then translate the architecture into implementation tasks. Created the groundside scaffold and scoped the mock fleet and image stitcher.",
+      "Drive algorithm and integration decisions by comparing coverage geometry, flight cost, assignment correctness and compute requirements; evaluate H3 indexing, boustrophedon tasks and minimum-cost fleet matching against the initial greedy scheduler.",
     ],
-    tags: ["Python", "System Architecture", "Project Management", "Code Review"],
+    tags: ["Python", "System Architecture", "Project Management", "Code Review", "Coverage Planning", "Distributed Systems"],
   },
   {
     role: "Software Engineering Intern",
